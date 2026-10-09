@@ -122,6 +122,17 @@ h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spa
 .backup h3{margin:0;font-size:15px;color:var(--muted);font-weight:600}
 .importbar{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--accent);border-radius:14px;background:var(--accent-soft);font-size:15px}
 .importbar .actions .btn{min-height:44px}
+/* cor por tipo */
+.item{border-left:4px solid transparent}
+.item.k-call{border-left-color:#3FD0E6}.item.k-call .t{color:#3FD0E6}
+.item.k-presencial{border-left-color:#FFB547}.item.k-presencial .t{color:#FFB547}
+.item.k-evento{border-left-color:#FF6FB5}.item.k-evento .t{color:#FF6FB5}
+.item.k-call .kind{background:#3FD0E6;border-color:#3FD0E6;color:#06222A}
+.item.k-presencial .kind{background:#FFB547;border-color:#FFB547;color:#2A1A00}
+.item.k-evento .kind{background:#FF6FB5;border-color:#FF6FB5;color:#2A0618}
+.type[data-type="call"][aria-pressed="true"]{background:#3FD0E6;border-color:#3FD0E6;color:#06222A}
+.type[data-type="presencial"][aria-pressed="true"]{background:#FFB547;border-color:#FFB547;color:#2A1A00}
+.type[data-type="evento"][aria-pressed="true"]{background:#FF6FB5;border-color:#FF6FB5;color:#2A0618}
 </style>
 </head>
 <body>
@@ -294,7 +305,7 @@ const isCanceled=r=>r.status==="cancelado";
 function itemHTML(r,ctx){
   const t=iso(today0());const now=new Date();const nowHM=pad(now.getHours())+":"+pad(now.getMinutes());
   const past=r.date<t||(r.date===t&&r.time&&r.time<nowHM);
-  const cls="item"+(past?" past":"")+(isCanceled(r)?" canceled":"");
+  const cls="item"+(r.type?" k-"+r.type:"")+(past?" past":"")+(isCanceled(r)?" canceled":"");
   let meta="";
   if(r.type) meta+='<span class="kind">'+esc(TYPE_LABEL[r.type]||r.type)+'</span>';
   if(r.place) meta+='<span>'+esc(r.place)+'</span>';
