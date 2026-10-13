@@ -473,7 +473,7 @@ $("lgCreate").addEventListener("click",async()=>{
   if(error){say($("lgStatus"),"Não consegui criar a conta: "+error.message,true);return}
   if(data.session) showApp(data.user); else say($("lgStatus"),"Conta criada. Confira seu e-mail para confirmar e depois toque em Entrar.");
 });
-$("logoutBtn").addEventListener("click",async()=>{await sb.auth.signOut();rowsCache={};docs=[];showLogin("Você saiu. Entre de novo quando quiser.")});
+$("logoutBtn").addEventListener("click",async()=>{await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Você saiu. Entre de novo quando quiser.")});
 
 /* ---------- trazer compromissos salvos neste aparelho ---------- */
 function localPending(){
@@ -512,6 +512,8 @@ setInterval(()=>{if(!document.hidden) reload()},60000);
 
 (async()=>{
   if(!sb){showLogin("Sem conexão com o servidor. Verifique a internet e recarregue.");return}
+  try{if(navigator.storage&&navigator.storage.persist) navigator.storage.persist()}catch(e){}
+  sb.auth.onAuthStateChange((ev,ses)=>{if(ev==="SIGNED_OUT"&&!$("app").hidden) showLogin("Sua sessão expirou. Entre de novo.")});
   const {data}=await sb.auth.getSession();
   if(data&&data.session) showApp(data.session.user); else showLogin();
 })();
