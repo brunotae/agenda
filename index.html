@@ -543,8 +543,6 @@ $("fidBtn").addEventListener("click",async()=>{
   if(fidOn()){try{localStorage.removeItem(FID_KEY)}catch(e){}fidLabel();say($("bkStatus"),"Face ID desativado neste aparelho.");return}
   if(!window.PublicKeyCredential){say($("bkStatus"),"Este aparelho não suporta Face ID no navegador.",true);return}
   try{
-    const ok=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if(!ok){say($("bkStatus"),"Face ID/Touch ID não disponível neste aparelho.",true);return}
     const cred=await navigator.credentials.create({publicKey:{
       challenge:rnd(32),rp:{name:"Agenda"},
       user:{id:rnd(16),name:(user&&user.email)||"agenda",displayName:"Agenda · Tae"},
@@ -553,7 +551,12 @@ $("fidBtn").addEventListener("click",async()=>{
       timeout:60000,attestation:"none"}});
     localStorage.setItem(FID_KEY,b64(cred.rawId));unlocked=true;fidLabel();
     say($("bkStatus"),"Face ID ativado. Da próxima vez que abrir, é só olhar para o celular.");
-  }catch(e){say($("bkStatus"),"Não consegui ativar o Face ID. Tente de novo.",true)}
+  }catch(e){
+    const m=e&&e.name==="NotAllowedError"?"Cancelado ou bloqueado. Confira se as Senhas/Chaves do iCloud estão ativadas e tente de novo."
+      :e&&e.name==="NotSupportedError"?"Este aparelho não aceitou o Face ID no navegador."
+      :"Não consegui ativar o Face ID ("+((e&&e.name)||"erro")+").";
+    say($("bkStatus"),m,true);
+  }
 });
 document.addEventListener("visibilitychange",()=>{
   if(document.hidden){hiddenAt=Date.now();return}
