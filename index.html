@@ -142,6 +142,9 @@ h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spa
 .dx{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#4ADE80;color:#062A12;border-radius:4px;padding:1px 6px}
 .item.done{opacity:.7}
 .undo{font:inherit;font-size:14px;font-weight:700;margin-left:8px;padding:4px 12px;border-radius:999px;border:1px solid var(--paper);background:var(--paper);color:var(--on-paper);cursor:pointer}
+/* trava Face ID */
+.lockcard{align-items:center;text-align:center;padding:28px 16px}
+.lockicon{width:64px;height:64px;border-radius:18px;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:30px}
 </style>
 </head>
 <body>
@@ -155,12 +158,22 @@ h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spa
     <h2>Entrar</h2>
     <p class="count">Entre com seu e-mail e senha para ver a mesma agenda no celular e no computador.</p>
     <form id="loginForm" class="form" autocomplete="on">
-      <label class="field" for="lgEmail">E-mail<input type="email" id="lgEmail" autocomplete="email" required></label>
-      <label class="field" for="lgPass">Senha<input type="password" id="lgPass" autocomplete="current-password" minlength="6" required></label>
+      <label class="field" for="lgEmail">E-mail<input type="email" id="lgEmail" name="username" autocomplete="username" autocapitalize="off" required></label>
+      <label class="field" for="lgPass">Senha<input type="password" id="lgPass" name="password" autocomplete="current-password" minlength="6" required></label>
       <button class="btn" id="lgBtn" type="submit">Entrar</button>
       <button class="btn ghost" id="lgCreate" type="button">Primeira vez? Criar conta</button>
     </form>
     <div class="status" id="lgStatus" role="status"></div>
+  </section>
+</div>
+<div class="wrap" id="lock" hidden>
+  <section class="card lockcard">
+    <div class="lockicon" aria-hidden="true">🔒</div>
+    <h2>Agenda bloqueada</h2>
+    <p class="count">Olhe para o celular para abrir.</p>
+    <button class="btn" id="lockBtn" type="button">Desbloquear com Face ID</button>
+    <button class="btn ghost" id="lockPass" type="button">Entrar com senha</button>
+    <div class="status" id="lockStatus" role="status"></div>
   </section>
 </div>
 <div class="wrap" id="app" hidden>
@@ -207,7 +220,7 @@ h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spa
     <div class="backup">
       <h3>Conta</h3>
       <p class="count">Conectado como <b id="who"></b>. Seus compromissos ficam guardados na nuvem e aparecem em todos os aparelhos em que você entrar.</p>
-      <div class="actions"><button class="btn ghost" id="bkCopy">Copiar backup</button><button class="btn ghost" id="logoutBtn">Sair desta conta</button></div>
+      <div class="actions"><button class="btn ghost wide" id="fidBtn" type="button">Ativar Face ID</button><button class="btn ghost" id="bkCopy">Copiar backup</button><button class="btn ghost" id="logoutBtn">Sair desta conta</button></div>
       <div class="status" id="bkStatus" role="status"></div>
     </div>
   </section>
@@ -455,8 +468,8 @@ col={
 };
 
 /* ---------- login ---------- */
-function showLogin(msg){user=null;$("app").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg)}
-function showApp(u){user=u;$("login").hidden=true;$("app").hidden=false;$("who").textContent=u.email||"";show("list");reload()}
+function showLogin(msg){user=null;$("app").hidden=true;$("lock").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg)}
+function showApp(u){user=u;$("login").hidden=true;if(fidOn()&&!unlocked){showLock();return}$("lock").hidden=true;$("app").hidden=false;fidLabel();$("who").textContent=u.email||"";show("list");reload()}
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const email=$("lgEmail").value.trim(),password=$("lgPass").value;
@@ -464,7 +477,7 @@ $("loginForm").addEventListener("submit",async e=>{
   const {data,error}=await sb.auth.signInWithPassword({email,password});
   $("lgBtn").disabled=false;
   if(error){say($("lgStatus"),/invalid/i.test(error.message)?"E-mail ou senha incorretos. Primeira vez? Toque em Criar conta.":"Não consegui entrar: "+error.message,true);return}
-  showApp(data.user);
+  unlocked=true;showApp(data.user);
 });
 $("lgCreate").addEventListener("click",async()=>{
   const email=$("lgEmail").value.trim(),password=$("lgPass").value;
@@ -506,8 +519,49 @@ $("bkCopy").addEventListener("click",async()=>{
   try{await navigator.clipboard.writeText(txt);say($("bkStatus"),"Backup copiado.")}catch(e){say($("bkStatus"),"Não consegui copiar neste aparelho.",true)}
 });
 
+/* ---------- Face ID (trava ao abrir) ---------- */
+const FID_KEY="agenda-tae-faceid";
+const LOCK_AFTER_MS=5*60*1000;
+let unlocked=false,hiddenAt=0;
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+function fidGet(){try{return localStorage.getItem(FID_KEY)}catch(e){return null}}
+function fidOn(){return !!fidGet()}
+function fidLabel(){$("fidBtn").textContent=fidOn()?"Desativar Face ID":"Ativar Face ID"}
+function showLock(){$("app").hidden=true;$("login").hidden=true;$("lock").hidden=false;$("lockStatus").textContent="";tryUnlock(true)}
+async function tryUnlock(auto){
+  const id=fidGet();if(!id){unlocked=true;$("lock").hidden=true;if(user) showApp(user);return}
+  try{
+    await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:"public-key",id:unb64(id),transports:["internal"]}],userVerification:"required",timeout:60000}});
+    unlocked=true;$("lock").hidden=true;if(user) showApp(user);
+  }catch(e){if(!auto) say($("lockStatus"),"Não reconheci. Toque para tentar de novo ou entre com senha.",true)}
+}
+$("lockBtn").addEventListener("click",()=>tryUnlock(false));
+$("lockPass").addEventListener("click",async()=>{await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Entre com e-mail e senha.")});
+$("fidBtn").addEventListener("click",async()=>{
+  if(fidOn()){try{localStorage.removeItem(FID_KEY)}catch(e){}fidLabel();say($("bkStatus"),"Face ID desativado neste aparelho.");return}
+  if(!window.PublicKeyCredential){say($("bkStatus"),"Este aparelho não suporta Face ID no navegador.",true);return}
+  try{
+    const ok=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if(!ok){say($("bkStatus"),"Face ID/Touch ID não disponível neste aparelho.",true);return}
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:rnd(32),rp:{name:"Agenda"},
+      user:{id:rnd(16),name:(user&&user.email)||"agenda",displayName:"Agenda · Tae"},
+      pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"discouraged"},
+      timeout:60000,attestation:"none"}});
+    localStorage.setItem(FID_KEY,b64(cred.rawId));unlocked=true;fidLabel();
+    say($("bkStatus"),"Face ID ativado. Da próxima vez que abrir, é só olhar para o celular.");
+  }catch(e){say($("bkStatus"),"Não consegui ativar o Face ID. Tente de novo.",true)}
+});
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  if(fidOn()&&user&&hiddenAt&&Date.now()-hiddenAt>LOCK_AFTER_MS){unlocked=false;showLock()}
+});
+
 /* ---------- atualizar sozinho ---------- */
-document.addEventListener("visibilitychange",()=>{if(!document.hidden) reload()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&unlocked||!document.hidden&&!fidOn()) reload()});
 setInterval(()=>{if(!document.hidden) reload()},60000);
 
 (async()=>{
