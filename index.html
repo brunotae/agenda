@@ -2,845 +2,649 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ateliê Lume · Demonstração MINTESS</title>
-<meta name="theme-color" content="#FBF8F4">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Agenda</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agenda">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#07061A">
+<link rel="manifest" href="manifest.json?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" href="icon-v2.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
+/* Layout: phone app shell — deep night-violet ground with soft purple light glows; hero header with a heavy white wordmark over an outlined weekday; three tabs, one screen at a time. Deliberately single dark look. */
 :root{
-  --acc:#C2563A;
-  --bg:#FBF8F4; --s1:#FFFFFF; --s2:#F5F0EA; --s3:#ECE4DA; --line:#E6DDD2;
-  --tx:#2A221C; --mu:#7A6B5F; --mu2:#A0918A;
-  --ok:#2F8F5B; --warn:#B7791F; --bad:#C2413A; --blue:#2E6BC6;
-  --r:12px;
-  --acc-soft:color-mix(in srgb, var(--acc) 12%, white);
-  --acc-line:color-mix(in srgb, var(--acc) 35%, white);
-  --acc-dark:color-mix(in srgb, var(--acc) 80%, black);
+  --bg:#07061A; --surface:#110E2A; --raised:#19153A; --fg:#F5F3FF; --muted:#A8A2CF; --line:#2B2556;
+  --accent:#C4B0FF; --btn:#7B3FF2; --on-accent:#FFFFFF; --accent-soft:#1A1540; --paper:#EDE7FF; --on-paper:#0C0A24; --danger:#FF7A9A;
+  --glow1:rgba(150,95,255,.85); --glow2:rgba(214,186,255,.55);
+  --display:"Poppins",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sans:"Poppins",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Poppins",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--tx);overflow-x:hidden}
-body{font:13px/1.45 Poppins,system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.5;position:relative;overflow-x:hidden;width:100%}
+html{overflow-x:hidden}
+.bgglow{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.bgglow::before{content:"";position:absolute;left:-25%;right:-25%;top:-60px;height:560px;background:radial-gradient(38% 42% at 28% 42%,var(--glow1),transparent 72%),radial-gradient(30% 36% at 78% 28%,var(--glow2),transparent 72%),radial-gradient(26% 30% at 60% 70%,rgba(123,63,242,.35),transparent 72%);filter:blur(24px);pointer-events:none;z-index:0}
+.bar,.wrap{position:relative;z-index:1}
+.bar{color:var(--fg);padding-inline:16px;padding-block:18px 6px}
+.bar-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:4px}
+.bar-top{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);letter-spacing:.02em;margin-bottom:10px}
+.bar h1{margin:0;font-family:var(--display);font-size:clamp(48px,15vw,76px);font-weight:900;letter-spacing:-.02em;line-height:.95;color:#fff;text-transform:uppercase}
+.bar .outline{font-family:var(--display);font-size:clamp(38px,12vw,60px);font-weight:800;line-height:1;text-transform:uppercase;color:transparent;-webkit-text-stroke:1.5px #fff;letter-spacing:.01em}
+.bar .sub{font-size:13px;color:var(--fg);opacity:.85;margin-top:8px}
+
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:16px 48px;display:flex;flex-direction:column;gap:16px}
+.tabs{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px}
+.tab{font:inherit;font-weight:600;font-size:14px;min-height:52px;padding:6px;border-radius:999px;border:1px solid var(--line);background:rgba(17,14,42,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--fg);cursor:pointer;line-height:1.2}
+.tab[aria-selected="true"]{background:var(--btn);color:var(--on-accent);border-color:var(--btn)}
+.view{display:flex;flex-direction:column;gap:14px}
+.card{background:rgba(17,14,42,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em;color:var(--fg)}
+.form{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted);font-weight:500}
+.field input,.field select{font:inherit;font-size:17px;color:var(--fg);background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0;width:100%;min-height:48px}
+.datepair{display:grid;grid-template-columns:1.3fr 1fr;gap:8px}
+.wd{font-size:14px;color:var(--fg);font-weight:600;margin-top:2px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+.timepair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.type{font:inherit;font-size:15px;font-weight:600;min-height:48px;padding:6px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--fg);cursor:pointer;line-height:1.2}
+.type[aria-pressed="true"]{background:var(--paper);color:var(--on-paper);border-color:var(--paper)}
+.btn{font:inherit;font-weight:600;font-size:16px;border:0;border-radius:999px;padding:14px 16px;min-height:52px;cursor:pointer;background:var(--btn);color:var(--on-accent);width:100%}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn.danger.armed{background:var(--btn);color:var(--on-accent);border-color:var(--btn)}
+.btn:disabled{opacity:.45;cursor:default}
+.tab:focus-visible,.btn:focus-visible,.type:focus-visible,.item:focus-visible,.field input:focus-visible,.field select:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.status:empty{display:none}
+.status{font-size:15px;color:var(--fg);font-weight:600;min-height:20px}
+.status.err{color:var(--danger)}
+.days{display:flex;flex-direction:column;gap:16px}
+.day{display:flex;flex-direction:column;gap:6px}
+.dayhead{display:flex;align-items:baseline;gap:10px;padding-inline:2px}
+.dayhead .d{font-family:var(--mono);font-weight:700;font-size:16px}
+.dayhead .w{font-size:14px;color:var(--muted)}
+.dayhead .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--paper);color:var(--on-paper);padding:2px 9px;border-radius:999px}
+.day.is-today .dayhead .d{color:var(--accent)}
+.list{background:rgba(17,14,42,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.list>div+div{border-top:1px solid var(--line)}
+.item{display:flex;gap:14px;align-items:baseline;padding:14px;cursor:pointer;width:100%;background:none;border:0;text-align:left;font:inherit;color:inherit;min-height:52px}
+.item .t{font-family:var(--mono);font-weight:700;font-size:15px;min-width:84px;white-space:nowrap;color:var(--accent);font-variant-numeric:tabular-nums}
+.item .body{min-width:0;display:flex;flex-direction:column;gap:3px}
+.item .n{overflow-wrap:anywhere}
+.item .meta{font-size:13px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kind{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--fg)}
+.cx{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--btn);color:var(--on-accent);border-radius:4px;padding:1px 6px}
+.item.past{opacity:.55}
+.item.canceled .n{text-decoration:line-through;text-decoration-color:var(--accent)}
+.item.canceled{opacity:.7}
+.edit{padding:14px;border-top:1px solid var(--line);background:var(--accent-soft);display:flex;flex-direction:column;gap:12px}
+.edit .field input,.edit .field select,.edit .type{background:var(--surface)}
+.edit .type[aria-pressed="true"]{background:var(--paper)}
+.actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.actions .btn{font-size:15px;min-height:46px;padding:10px}
+.actions .wide{grid-column:1/-1}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:20px;color:var(--muted);font-size:15px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:inherit;font-size:14px;font-weight:600;min-height:40px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--paper);color:var(--on-paper);border-color:var(--paper)}
+.count{font-size:13px;color:var(--muted)}
+.listgrid{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;order:-1}
+.cal{background:rgba(17,14,42,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:10px 8px 8px}
+.cal h3{margin:0 0 6px;font-size:12px;font-weight:700;text-transform:capitalize;color:var(--fg);padding-inline:4px}
+.cal .g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;text-align:center}
+.cal .wh{font-size:9px;color:var(--muted);font-weight:600;padding-bottom:2px}
+.cal .c{font-size:11px;line-height:1;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:999px;color:var(--fg);font-variant-numeric:tabular-nums;background:none;border:0;font-family:inherit;padding:0}
+.cal .c.past{color:var(--muted);opacity:.55}
+.cal .c.today{box-shadow:inset 0 0 0 1.5px var(--accent);font-weight:700}
+.cal .c.has{font-weight:700;cursor:pointer}
+.cal .c.has::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal .c.has:hover{background:var(--accent-soft)}
+.cal .c:not(.has)::after{content:"";width:4px;height:4px}
+@media (min-width:860px){
+  .wrap{max-width:920px}
+  .bar-in{max-width:888px}
+  .listgrid{grid-template-columns:minmax(0,1fr) 240px;align-items:start}
+  .mini{order:0;grid-template-columns:1fr;position:sticky;top:16px}
+  .cal .c{font-size:12px}
+}
 [hidden]{display:none!important}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-input,select,textarea{font:inherit;color:var(--tx)}
-svg{flex:none}
-
-/* ---------- demo banner ---------- */
-#banner{position:sticky;top:0;z-index:35;background:var(--tx);color:#fff;font-size:11.5px;padding:6px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#banner b{color:#fff}
-#banner .sp{flex:1}
-#banner button{color:#fff;opacity:.85;text-decoration:underline}
-.mint{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;background:#3FE0B0;color:#04241A;font-weight:800;font-size:11px}
-
-/* ---------- entrada ---------- */
-#entrada{min-height:calc(100vh - 32px);display:flex;align-items:center;justify-content:center;padding:28px 16px}
-.ecard{width:100%;max-width:440px;background:var(--s1);border:1px solid var(--line);border-radius:22px;padding:28px 24px;box-shadow:0 30px 70px -40px rgba(60,30,10,.35)}
-.ecard h1{font-size:24px;font-weight:800;letter-spacing:-.4px;line-height:1.15;margin:10px 0 6px}
-.ecard p{color:var(--mu)}
-.f{margin-bottom:12px}
-.f>label{display:block;font-size:11.5px;color:var(--mu);font-weight:500;margin-bottom:5px}
-.f>label em{color:var(--acc);font-style:normal}
-.in{width:100%;background:var(--s1);border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:0}
-.in:focus{border-color:var(--acc)}
-textarea.in{min-height:76px;resize:vertical}
-.sw{display:flex;gap:8px;flex-wrap:wrap}
-.sw button{width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line)}
-.sw button.on{box-shadow:0 0 0 2px var(--tx)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;padding:8px 15px;font-weight:600;font-size:12.5px;min-height:36px;white-space:nowrap}
-.btn.pri{background:var(--acc);color:#fff}
-.btn.pri:hover{background:var(--acc-dark)}
-.btn.sec{background:var(--s1);border:1px solid var(--line)}
-.btn.ghost{color:var(--mu)}
-.btn.ok{background:var(--ok);color:#fff}
-.btn.full{width:100%}
-.btn.sm{padding:5px 11px;min-height:30px;font-size:12px}
-.btn[disabled]{opacity:.5;pointer-events:none}
-.pk{display:flex;flex-wrap:wrap;gap:6px}
-.pk button{padding:6px 12px;border-radius:999px;background:var(--s2);border:1px solid var(--line);font-size:12px;min-height:34px}
-.pk button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
-.pk button.dis{opacity:.35;pointer-events:none;text-decoration:line-through}
-
-/* ---------- app ---------- */
-#app{display:flex;min-height:calc(100vh - 32px)}
-#side{width:212px;flex:none;background:var(--s1);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:3px;position:sticky;top:32px;height:calc(100vh - 32px);overflow-y:auto}
-.brand{display:flex;align-items:center;gap:10px;padding:2px 6px 14px}
-.logo{width:38px;height:38px;border-radius:11px;background:var(--acc);color:#fff;display:grid;place-items:center;font-weight:800;font-size:17px;flex:none}
-.brand b{font-weight:800;font-size:15px;line-height:1.15;letter-spacing:-.2px;display:block}
-.brand small{font-size:10.5px;color:var(--mu)}
-.nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--mu);text-align:left;width:100%;font-weight:500}
-.nav:hover{background:var(--s2);color:var(--tx)}
-.nav.on{background:var(--acc-soft);color:var(--acc-dark);font-weight:600}
-.nav .lock{margin-left:auto;font-size:10px;color:var(--mu2)}
-.side-foot{margin-top:auto;padding:12px 6px 0;border-top:1px solid var(--line);font-size:11px;color:var(--mu)}
-main{flex:1;min-width:0;padding:18px 22px 110px}
-.top{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.top h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
-.top .sp{flex:1}
-.role{display:inline-flex;align-items:center;gap:6px;background:var(--s1);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 12px;font-size:12px}
-.role select{border:0;background:var(--s2);border-radius:999px;padding:4px 8px;font-weight:600;outline:0}
-#bottom{display:none}
-
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
-.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
-.card .l{font-size:11px;color:var(--mu);display:flex;align-items:center;gap:6px}
-.card .v{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-top:2px}
-.card .d{font-size:10.5px;color:var(--mu2)}
-.card.warn .v{color:var(--warn)} .card.bad .v{color:var(--bad)}
-.panel{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.panel h3{font-size:13.5px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.panel h3 .sp{flex:1}
-.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}
-.muted{color:var(--mu)} .small{font-size:11px} .num{font-variant-numeric:tabular-nums;white-space:nowrap}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;background:var(--s2);color:var(--mu);border:1px solid var(--line);white-space:nowrap}
-.chip.ok{color:var(--ok);background:#E9F6EF;border-color:#BFE3CF}
-.chip.warn{color:var(--warn);background:#FBF1DF;border-color:#EBD3A6}
-.chip.bad{color:var(--bad);background:#FBE7E5;border-color:#EFC1BC}
-.chip.acc{color:var(--acc-dark);background:var(--acc-soft);border-color:var(--acc-line)}
-table{width:100%;border-collapse:collapse}
-th{font-size:10.5px;color:var(--mu2);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.4px}
-td{padding:8px;border-bottom:1px solid var(--s3);font-size:12.5px;vertical-align:middle}
-tr.click{cursor:pointer} tr.click:hover td{background:var(--s2)}
-.r{text-align:right}
-.empty{color:var(--mu);text-align:center;padding:18px}
-.bars{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:6px}
-.bars div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--mu)}
-.bars i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--acc);min-height:3px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.tab{padding:5px 12px;border-radius:999px;background:var(--s1);border:1px solid var(--line);color:var(--mu);font-size:12px;font-weight:600}
-.tab.on{background:var(--tx);border-color:var(--tx);color:#fff}
-
-/* produtos */
-.prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
-.prod{background:var(--s1);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;display:flex;flex-direction:column}
-.prod:hover{border-color:var(--acc-line)}
-.ph{height:96px;display:grid;place-items:center;position:relative}
-.ph .dots{position:absolute;left:8px;bottom:8px;display:flex;gap:4px}
-.ph .dots i{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.1)}
-.prod .b{padding:10px 12px;display:flex;flex-direction:column;gap:3px;flex:1}
-.prod .b b{font-size:13px;font-weight:600;line-height:1.25}
-.prod .pr{font-weight:700;color:var(--acc-dark)}
-.mini{display:flex;gap:2px;margin-top:4px;flex-wrap:wrap}
-.mini i{width:10px;height:10px;border-radius:3px}
-
-/* grade */
-.grade{border-collapse:separate;border-spacing:5px;margin:-5px}
-.grade th{border:0;text-align:center;padding:2px 4px;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--mu)}
-.grade th.cor{text-align:left;white-space:nowrap}
-.grade td{border:0;padding:0}
-.cell{width:62px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:14px;position:relative}
-.cell.ok{background:#E9F6EF;color:var(--ok)} .cell.warn{background:#FBF1DF;color:var(--warn)} .cell.bad{background:#FBE7E5;color:var(--bad)}
-.cell button{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.8);font-weight:700;font-size:13px;line-height:1;color:var(--tx)}
-.cell button:hover{background:#fff}
-.legend{display:flex;gap:12px;font-size:11px;color:var(--mu);margin-top:10px}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
-
-/* venda */
-.cart{background:var(--s2);border-radius:12px;padding:10px 12px}
-.cl{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
-.cl:last-child{border-bottom:0}
-.cl .n{flex:1}
-.tot{display:flex;justify-content:space-between;font-weight:800;font-size:17px;margin-top:8px}
-
-/* permissões */
-.perm td,.perm th{text-align:center}
-.perm td:first-child,.perm th:first-child{text-align:left}
-.yes{color:var(--ok);font-weight:800} .no{color:var(--mu2)}
-
-/* modal */
-#mback{position:fixed;inset:0;background:rgba(40,25,15,.45);z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:30px 12px;overflow-y:auto;backdrop-filter:blur(2px)}
-.modal{width:100%;max-width:560px;background:var(--s1);border-radius:18px;box-shadow:0 30px 80px -20px rgba(40,20,10,.5)}
-.modal.wide{max-width:760px}
-.mh{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
-.mh h2{font-size:15px;font-weight:800;flex:1}
-.mb{padding:14px 16px}
-.mf{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
-.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--tx);color:#fff;padding:9px 16px;border-radius:999px;font-weight:600;font-size:12.5px;z-index:90;box-shadow:0 10px 30px -10px rgba(0,0,0,.4);max-width:92vw;text-align:center}
-.toast.win{background:var(--ok)}
-
-/* missões */
-#missBtn{position:fixed;right:18px;bottom:20px;z-index:50;background:var(--tx);color:#fff;border-radius:999px;padding:10px 16px 10px 12px;font-weight:700;display:flex;align-items:center;gap:10px;box-shadow:0 14px 30px -12px rgba(0,0,0,.5)}
-#missBtn .pr{width:26px;height:26px;border-radius:50%;background:conic-gradient(#3FE0B0 var(--p,0%), rgba(255,255,255,.18) 0);display:grid;place-items:center;font-size:10px}
-#missBtn .pr span{width:20px;height:20px;border-radius:50%;background:var(--tx);display:grid;place-items:center}
-#miss{position:fixed;right:18px;bottom:76px;z-index:55;width:330px;max-width:calc(100vw - 24px);background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 60px -20px rgba(40,20,10,.45);overflow:hidden}
-#miss .mh{background:var(--tx);color:#fff;border:0}
-.mi{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--s3);width:100%;text-align:left}
-.mi:hover{background:var(--s2)}
-.mi .ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex:none;margin-top:1px;font-size:12px;color:#fff}
-.mi.done .ck{background:var(--ok);border-color:var(--ok)}
-.mi.done b{text-decoration:line-through;color:var(--mu)}
-.mi b{font-size:12.5px;font-weight:600;display:block}
-.lv{display:inline-block;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;margin-top:3px}
-.lv1{background:#DDF7EE;color:#167A5B} .lv2{background:#E3EEFF;color:#2A5DB0} .lv3{background:#FFF3D1;color:#8A6400} .lv4{background:#FFE6D3;color:#A34A0E} .lvu{background:var(--s2);color:var(--mu)}
-.glow{animation:glow 1.4s ease-in-out 3}
-@keyframes glow{50%{box-shadow:0 0 0 4px var(--acc-line)}}
-
-/* pedir */
-.steps{display:flex;gap:6px;margin:12px 0}
-.steps div{flex:1;font-size:11px;color:var(--mu2);text-align:center}
-.steps div:before{content:"";display:block;height:5px;border-radius:9px;background:var(--s3);margin-bottom:5px}
-.steps div.done{color:var(--tx)} .steps div.done:before{background:var(--ok)}
-.steps div.now{color:var(--acc-dark);font-weight:700} .steps div.now:before{background:var(--acc)}
-.res{border-radius:14px;padding:14px;border:1px solid var(--line);background:var(--s2)}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--acc);border-right-color:transparent;border-radius:50%;animation:rot .8s linear infinite;vertical-align:-1px}
-@keyframes rot{to{transform:rotate(360deg)}}
-.escada{display:flex;align-items:flex-end;gap:8px;height:150px;margin:10px 0}
-.escada div{flex:1;border-radius:10px 10px 4px 4px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;font-size:11px;font-weight:600}
-.escada b{font-size:24px;font-weight:800;line-height:1}
-
-@media (max-width:860px){
-  #side{display:none}
-  main{padding:12px 16px calc(150px + env(safe-area-inset-bottom))}
-  .cards{grid-template-columns:1fr 1fr}
-  .grid2{grid-template-columns:1fr}
-  #bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.97);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));overflow-x:auto}
-  #bottom button{flex:1 0 50px;display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--mu);gap:2px;padding:4px 0}
-  #bottom button.on{color:var(--acc-dark);font-weight:700}
-  #missBtn{bottom:calc(70px + env(safe-area-inset-bottom))}
-  #miss{bottom:calc(126px + env(safe-area-inset-bottom))}
-  .hide-m{display:none}
-  #mback{padding:0;align-items:stretch}
-  .modal{border-radius:0;min-height:100vh}
-  .cell{width:52px}
-}
+.backup{display:flex;flex-direction:column;gap:10px;margin-top:8px;padding-top:16px;border-top:1px solid var(--line)}
+.backup h3{margin:0;font-size:15px;color:var(--muted);font-weight:600}
+.importbar{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--accent);border-radius:14px;background:var(--accent-soft);font-size:15px}
+.importbar .actions .btn{min-height:44px}
+/* cor por tipo */
+.item{border-left:4px solid transparent}
+.item.k-call{border-left-color:#3FD0E6}.item.k-call .t{color:#3FD0E6}
+.item.k-presencial{border-left-color:#FFB547}.item.k-presencial .t{color:#FFB547}
+.item.k-evento{border-left-color:#FF6FB5}.item.k-evento .t{color:#FF6FB5}
+.item.k-call .kind{background:#3FD0E6;border-color:#3FD0E6;color:#06222A}
+.item.k-presencial .kind{background:#FFB547;border-color:#FFB547;color:#2A1A00}
+.item.k-evento .kind{background:#FF6FB5;border-color:#FF6FB5;color:#2A0618}
+.type[data-type="call"][aria-pressed="true"]{background:#3FD0E6;border-color:#3FD0E6;color:#06222A}
+.type[data-type="presencial"][aria-pressed="true"]{background:#FFB547;border-color:#FFB547;color:#2A1A00}
+.type[data-type="evento"][aria-pressed="true"]{background:#FF6FB5;border-color:#FF6FB5;color:#2A0618}
+/* concluído */
+.iw{position:relative}
+.item.hasdone{padding-right:64px}
+.donebtn{position:absolute;right:10px;top:8px;width:44px;height:44px;border-radius:50%;border:1.5px solid #4ADE80;background:transparent;color:#4ADE80;font:inherit;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.donebtn:active{background:#4ADE80;color:#062A12}
+.donebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dx{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#4ADE80;color:#062A12;border-radius:4px;padding:1px 6px}
+.item.done{opacity:.7}
+.undo{font:inherit;font-size:14px;font-weight:700;margin-left:8px;padding:4px 12px;border-radius:999px;border:1px solid var(--paper);background:var(--paper);color:var(--on-paper);cursor:pointer}
+/* trava Face ID */
+.lockcard{align-items:center;text-align:center;padding:28px 16px}
+.lockicon{width:64px;height:64px;border-radius:18px;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:30px}
+/* visão semana */
+.vchip{font:inherit;font-size:14px;font-weight:600;min-height:40px;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.vchip[aria-pressed="true"]{background:var(--paper);color:var(--on-paper);border-color:var(--paper)}
+.vtoggle{display:flex;gap:8px}
+.weeknav{display:flex;align-items:center;gap:8px}
+.vnav{font:inherit;font-weight:700;font-size:18px;min-width:44px;height:40px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;padding:0 12px}
+.vnav.today{font-size:14px}
+.wlabel{font-weight:600;flex:1;text-align:center;font-size:15px}
+.wgrid{display:grid;grid-template-columns:repeat(7,minmax(80px,1fr));gap:5px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.wcol{display:flex;flex-direction:column;gap:5px;scroll-snap-align:start;min-width:0}
+.wh{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0}
+.wd3{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em}
+.wn{font-size:17px;font-weight:700;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.wcol.is-today .wn{background:var(--btn);color:#fff}
+.wpill{font:inherit;text-align:left;display:flex;flex-direction:column;gap:1px;padding:5px 6px;border-radius:8px;border:1px solid var(--line);border-left:3px solid var(--accent);background:rgba(17,14,42,.78);color:var(--fg);cursor:pointer;min-height:40px;width:100%}
+.wpill .wt{font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap}
+.wpill .wx{font-size:12px;line-height:1.25;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.wpill.k-call{border-left-color:#3FD0E6}.wpill.k-call .wt{color:#3FD0E6}
+.wpill.k-presencial{border-left-color:#FFB547}.wpill.k-presencial .wt{color:#FFB547}
+.wpill.k-evento{border-left-color:#FF6FB5}.wpill.k-evento .wt{color:#FF6FB5}
+.wpill.done{opacity:.5}
+.wempty{color:var(--muted);text-align:center;padding:6px 0}
 </style>
 </head>
 <body>
-<div id="banner"><span class="mint">M</span><span><b>Demonstração MINTESS</b><span class="hide-m"> · dados fictícios, só neste aparelho.</span> Mexa à vontade!</span><span class="sp"></span><button data-act="recomecar">Recomeçar</button></div>
 
-<!-- ============ ENTRADA ============ -->
-<section id="entrada" hidden>
-  <div class="ecard">
-    <span class="chip acc">Demonstração · 5 minutos</span>
-    <h1>Vamos montar o sistema da sua loja</h1>
-    <p>Você vai experimentar um sistema de verdade: vender, controlar estoque, equipe e financeiro. Nada aqui é real, então pode testar tudo.</p>
-    <div class="f" style="margin-top:18px"><label>Nome da sua loja <em>*</em></label><input class="in" id="eNome" placeholder="Ex.: Ateliê Lume" maxlength="40" autocomplete="off"></div>
-    <div class="f"><label>Cor da sua marca</label><div class="sw" id="eCor"></div></div>
-    <button class="btn pri full" data-act="comecar" style="margin-top:8px">Abrir meu sistema →</button>
+
+<div class="bgglow" aria-hidden="true"></div>
+<header class="bar"><div class="bar-in"><div class="bar-top"><span>Tae · Bruno</span><span id="todayLabel"></span></div><h1>Agenda</h1><div class="outline" id="outlineDay" aria-hidden="true"></div><div class="sub" id="nextUp">Seus compromissos, em ordem.</div></div></header>
+
+<div class="wrap" id="login" hidden>
+  <section class="card">
+    <h2>Entrar</h2>
+    <p class="count">Entre com seu e-mail e senha para ver a mesma agenda no celular e no computador.</p>
+    <form id="loginForm" class="form" autocomplete="on">
+      <label class="field" for="lgEmail">E-mail<input type="email" id="lgEmail" name="username" autocomplete="username" autocapitalize="off" required></label>
+      <label class="field" for="lgPass">Senha<input type="password" id="lgPass" name="password" autocomplete="current-password" minlength="6" required></label>
+      <button class="btn" id="lgBtn" type="submit">Entrar</button>
+      <button class="btn ghost" id="lgCreate" type="button">Primeira vez? Criar conta</button>
+    </form>
+    <div class="status" id="lgStatus" role="status"></div>
+  </section>
+</div>
+<div class="wrap" id="lock" hidden>
+  <section class="card lockcard">
+    <div class="lockicon" aria-hidden="true">🔒</div>
+    <h2>Agenda bloqueada</h2>
+    <p class="count">Olhe para o celular para abrir.</p>
+    <button class="btn" id="lockBtn" type="button">Desbloquear com Face ID</button>
+    <button class="btn ghost" id="lockPass" type="button">Entrar com senha</button>
+    <div class="status" id="lockStatus" role="status"></div>
+  </section>
+</div>
+<div class="wrap" id="app" hidden>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-new" aria-selected="false" aria-controls="view-new">+ Novo</button>
+    <button class="tab" role="tab" id="tab-list" aria-selected="true" aria-controls="view-list">Compromissos</button>
+    <button class="tab" role="tab" id="tab-hist" aria-selected="false" aria-controls="view-hist">Histórico</button>
   </div>
-</section>
 
-<!-- ============ APP ============ -->
-<div id="app" hidden>
-  <aside id="side"></aside>
-  <main>
-    <div class="top">
-      <h1 id="ttl"></h1>
-      <span class="sp"></span>
-      <label class="role">Ver como <select id="papelSel" aria-label="Ver o sistema como"></select></label>
+  <section id="view-new" class="card" role="tabpanel" aria-labelledby="tab-new" hidden>
+    <h2>Novo compromisso</h2>
+    <form id="newForm" class="form" autocomplete="off">
+      <div class="row2">
+        <label class="field" for="nDate">Data<input type="date" id="nDate" data-pre="n" class="dsel"><span class="wd" id="nWd"></span></label>
+        <div class="field"><span>Hora</span><div class="timepair" id="nTimeWrap"></div></div>
+      </div>
+      <div class="field"><span>Tipo</span><div class="types" id="nTypes"></div></div>
+      <label class="field" for="nTitle">Assunto &amp; Pessoa<input id="nTitle" placeholder="Ex.: almoço com Denis" enterkeyhint="done"></label>
+      <button class="btn" id="saveBtn" type="submit">Salvar</button>
+    </form>
+    <div class="status" id="newStatus" role="status"></div>
+  </section>
+
+  <section id="view-list" class="view" role="tabpanel" aria-labelledby="tab-list">
+    <h2>Meus compromissos</h2>
+    <div class="vtoggle" id="viewToggle" role="group" aria-label="Modo de visualização"><button class="vchip" data-view="list" aria-pressed="true">Lista</button><button class="vchip" data-view="week" aria-pressed="false">Semana</button></div>
+    <div class="view" id="week" hidden></div>
+    <div class="importbar" id="importBar" hidden><span id="importTxt"></span><div class="actions"><button class="btn" id="impYes">Enviar para a nuvem</button><button class="btn ghost" id="impNo">Agora não</button></div></div>
+    <div class="status" id="listStatus" role="status"></div>
+    <div class="listgrid" id="listwrap">
+      <div class="days" id="days"><div class="empty">Carregando seus compromissos…</div></div>
+      <aside class="mini" id="mini" aria-label="Calendário dos próximos 2 meses"></aside>
     </div>
-    <div id="view"></div>
-  </main>
-  <nav id="bottom"></nav>
+  </section>
+
+  <section id="view-hist" class="view" role="tabpanel" aria-labelledby="tab-hist" hidden>
+    <h2>Histórico</h2>
+    <div class="chips" role="group" aria-label="Filtro">
+      <button class="chip" data-filter="all" aria-pressed="true">Todos</button>
+      <button class="chip" data-filter="done" aria-pressed="false">Concluídos</button>
+      <button class="chip" data-filter="canceled" aria-pressed="false">Cancelados</button>
+    </div>
+    <div class="count" id="histCount"></div>
+    <div class="status" id="histStatus" role="status"></div>
+    <div class="days" id="hist"></div>
+    <div class="backup">
+      <h3>Conta</h3>
+      <p class="count">Conectado como <b id="who"></b>. Seus compromissos ficam guardados na nuvem e aparecem em todos os aparelhos em que você entrar.</p>
+      <div class="actions"><button class="btn ghost wide" id="fidBtn" type="button">Ativar Face ID</button><button class="btn ghost" id="bkCopy">Copiar backup</button><button class="btn ghost" id="logoutBtn">Sair desta conta</button></div>
+      <div class="status" id="bkStatus" role="status"></div>
+    </div>
+  </section>
 </div>
 
-<button id="missBtn" hidden data-act="missToggle"><span class="pr"><span id="missN">0</span></span>Missões</button>
-<div id="miss" hidden></div>
-<div id="mback" hidden><div class="modal" id="modal"></div></div>
-
 <script>
-"use strict";
-/* ===== configurar (MINTESS) ===== */
-const CONTATO = { whatsapp: "" }; // ex.: "5511999999999" (vazio = a pessoa escolhe o contato)
+const WD=["domingo","2ª feira","3ª feira","4ª feira","5ª feira","6ª feira","sábado"];
+const TYPES=[["call","Call online"],["presencial","Presencial"],["evento","Evento"]];
+const TYPE_LABEL=Object.fromEntries(TYPES);
+const MINS=["00","15","30","45"];
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const fromIso=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const short=s=>{const d=fromIso(s);return (d.getMonth()+1)+"/"+d.getDate()};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const h12=i=>pad(i%12===0?12:i%12)+" "+(i<12?"AM":"PM");
+const fmt=t=>{if(!t) return "";const [h,m]=t.split(":");const i=+h;return pad(i%12===0?12:i%12)+":"+m+" "+(i<12?"AM":"PM")};
+const needsPlace=t=>t==="presencial"||t==="evento";
+const $=id=>document.getElementById(id);
 
-/* ===== utilidades ===== */
-const $ = s => document.querySelector(s);
-const h = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const brl = n => (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const num = v => { const s=String(v??"").replace(/\s|R\$/g,""); const n=Number(s.includes(",")?s.replace(/\./g,"").replace(",","."):s); return isNaN(n)?0:n; };
-const uid = () => Math.random().toString(36).slice(2,9);
-const hoje = () => new Date().toISOString().slice(0,10);
-const diasAtras = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
-const dataBR = s => s ? s.slice(8,10)+"/"+s.slice(5,7) : "";
-const diffDias = s => Math.floor((Date.now()-new Date(s+"T12:00:00"))/86400000);
-function toast(t, win){ document.querySelectorAll(".toast").forEach(x=>x.remove()); const el=document.createElement("div"); el.className="toast"+(win?" win":""); el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(), 2600); }
-const CORES_MARCA = ["#C2563A","#2E4A7D","#5B7B3A","#B23A6E","#2A2A2A","#8A5A2B"];
-
-const IC = {
-  inicio:'<path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/>',
-  vender:'<path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
-  estoque:'<path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/>',
-  financeiro:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
-  equipe:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.7c2 .7 3.5 2.4 3.5 5.3"/>',
-  empresa:'<path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-5h6v5M8 8h2M14 8h2M8 12h2M14 12h2"/>',
-  pedir:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>'
-};
-const ic = (k, s=18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]||""}</svg>`;
-
-/* ===== papéis (níveis de acesso) ===== */
-const TELAS = [
-  {k:"inicio", t:"Início"}, {k:"vender", t:"Vender"}, {k:"estoque", t:"Estoque"},
-  {k:"financeiro", t:"Financeiro"}, {k:"equipe", t:"Equipe e RH", c:"Equipe"}, {k:"empresa", t:"Minha empresa", c:"Empresa"}, {k:"pedir", t:"Pedir mudança", c:"Pedir"}
-];
-const PAPEIS = {
-  dono:      {nome:"Dono",       telas:["inicio","vender","estoque","financeiro","equipe","empresa","pedir"], editarEstoque:true,  verCusto:true,  verSalario:true},
-  gerente:   {nome:"Gerente",    telas:["inicio","vender","estoque","equipe","pedir"],                       editarEstoque:true,  verCusto:true,  verSalario:false},
-  vendedor:  {nome:"Vendedor",   telas:["vender","estoque"],                                                 editarEstoque:false, verCusto:false, verSalario:false},
-  financeiro:{nome:"Financeiro", telas:["inicio","financeiro"],                                              editarEstoque:false, verCusto:true,  verSalario:true}
-};
-const pode = k => PAPEIS[S.papel][k];
-
-/* ===== missões ===== */
-const MISSOES = [
-  {k:"preco",   t:"Mude o preço de uma peça",        n:"1", onde:"estoque",    dica:"Estoque → toque numa peça → Preço"},
-  {k:"venda",   t:"Venda uma peça e veja a grade mudar", n:"u", onde:"vender",  dica:"Vender → escolha peça, cor e tamanho"},
-  {k:"grade",   t:"Ajuste o estoque na grade",        n:"1", onde:"estoque",    dica:"Estoque → peça → use + e − na grade"},
-  {k:"despesa", t:"Lance uma despesa",                n:"1", onde:"financeiro", dica:"Financeiro → + Nova despesa"},
-  {k:"convite", t:"Convide uma vendedora",            n:"1", onde:"equipe",     dica:"Equipe e RH → + Convidar pessoa"},
-  {k:"papel",   t:"Veja o sistema como Vendedor",     n:"u", onde:null,         dica:"No topo: Ver como → Vendedor"},
-  {k:"pedido",  t:"Peça uma mudança no sistema",      n:"2", onde:"pedir",      dica:"Pedir mudança → descreva o que quer"}
-];
-const LV = {"1":["lv1","Nível 1 · você faz"],"2":["lv2","Nível 2 · pede no sistema"],"3":["lv3","Nível 3 · programador"],"4":["lv4","Nível 4 · projeto"],"u":["lvu","No dia a dia"]};
-
-/* ===== estado ===== */
-const KEY = "mintess-demo-loja-v1";
-let S = null;
-function salvar(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
-function carregarSalvo(){ try{ const t=localStorage.getItem(KEY); return t?JSON.parse(t):null; }catch(e){ return null; } }
-
-function semente(){
-  const T = ["P","M","G","GG"], N1 = ["34","35","36","37","38","39"], N2 = ["38","39","40","41","42","43"], U=["U"];
-  const C = (n,x)=>({nome:n,hex:x});
-  const pr = (nome,cat,colecao,preco,custo,cores,tams,est,ult) => {
-    const e = {}; let i=0;
-    cores.forEach(c=>tams.forEach(t=>{ e[c.nome+"|"+t] = est[i%est.length]; i++; }));
-    return {id:uid(), nome, cat, colecao, preco, custo, cores, tams, estoque:e, min:2, ultimaVenda: diasAtras(ult)};
-  };
-  const produtos = [
-    pr("Vestido midi linho","Feminino","Verão 26",289.9,118,[C("Areia","#D9C3A0"),C("Oliva","#6F7A45"),C("Preto","#232323")],T,[3,5,4,1,2,6,0,3,4,2,5,1],1),
-    pr("Blusa de seda","Feminino","Festa",219.9,84,[C("Off-white","#F1EBDD"),C("Vinho","#6E2433")],T,[4,2,3,0,1,5,2,2],3),
-    pr("Calça pantalona","Feminino","Básicos",249.9,96,[C("Preto","#232323"),C("Caramelo","#A9693A")],T,[2,6,5,3,1,4,0,2],2),
-    pr("Saia plissada","Feminino","Verão 26",179.9,64,[C("Rosa","#E4A5B5"),C("Azul","#4E6FA8")],T,[0,1,0,2,1,0,1,0],74),
-    pr("Camisa oxford","Masculino","Básicos",199.9,78,[C("Branco","#F5F5F2"),C("Azul claro","#AFC6E4")],T,[3,5,6,2,4,3,5,1],1),
-    pr("Bermuda chino","Masculino","Verão 26",159.9,58,[C("Bege","#CDB892"),C("Marinho","#2B3A55")],T,[2,4,3,1,3,2,0,1],5),
-    pr("Camiseta básica","Masculino","Básicos",79.9,26,[C("Branco","#F5F5F2"),C("Preto","#232323"),C("Mescla","#9A9C9E")],T,[8,10,9,4,6,8,7,3,5,7,6,2],0),
-    pr("Tênis couro branco","Sapatos","Básicos",349.9,150,[C("Branco","#F5F5F2")],N2,[1,3,4,2,2,1],2),
-    pr("Sandália trançada","Sapatos","Verão 26",229.9,88,[C("Caramelo","#A9693A"),C("Preto","#232323")],N1,[1,2,3,2,1,0,0,1,2,1,0,1],8),
-    pr("Mocassim camurça","Sapatos","Festa",399.9,170,[C("Marrom","#6B4A31")],N2,[0,1,1,0,1,0],96),
-    pr("Bolsa tiracolo","Acessórios","Básicos",259.9,95,[C("Caramelo","#A9693A"),C("Preto","#232323")],U,[4,2],4),
-    pr("Cinto couro","Acessórios","Básicos",119.9,38,[C("Marrom","#6B4A31"),C("Preto","#232323")],U,[6,1],12),
-    pr("Óculos de sol","Acessórios","Verão 26",189.9,62,[C("Tartaruga","#7A4E2D")],U,[3],2),
-    pr("Lenço estampado","Acessórios","Festa",89.9,24,[C("Floral","#C98A7A")],U,[5],81)
-  ];
-  const equipe = [
-    {id:uid(), nome:"Você", cargo:"Proprietária", papel:"dono", salario:0, comissao:0, admissao:diasAtras(900), email:"voce@sualoja.com", status:"ativo"},
-    {id:uid(), nome:"Camila Rocha", cargo:"Gerente de loja", papel:"gerente", salario:3200, comissao:1, admissao:diasAtras(540), email:"camila@sualoja.com", status:"ativo"},
-    {id:uid(), nome:"Rafael Lima", cargo:"Vendedor", papel:"vendedor", salario:1900, comissao:3, admissao:diasAtras(210), email:"rafael@sualoja.com", status:"ativo"},
-    {id:uid(), nome:"Juliana Alves", cargo:"Vendedora", papel:"vendedor", salario:1900, comissao:3, admissao:diasAtras(95), email:"juliana@sualoja.com", status:"ativo"},
-    {id:uid(), nome:"Marcos Dias", cargo:"Financeiro (meio período)", papel:"financeiro", salario:1500, comissao:0, admissao:diasAtras(330), email:"marcos@sualoja.com", status:"ativo"}
-  ];
-  // vendas dos últimos 14 dias (fixas, para o painel ficar vivo)
-  const vendas = [];
-  const vend = [equipe[1], equipe[2], equipe[3]];
-  const pags = ["Pix","Crédito","Débito","Pix","Crédito","Dinheiro"];
-  const plano = [5,3,6,4,7,8,3,5,6,4,9,6,5,4];
-  let k = 0;
-  plano.forEach((q,d)=>{ for(let i=0;i<q;i++){ const p=produtos[(k*7+d*3)%produtos.length]; if (diffDias(p.ultimaVenda)>30){ k++; continue; } const c=p.cores[k%p.cores.length], t=p.tams[k%p.tams.length]; const qtd = 1 + (k%5===0?1:0);
-    vendas.push({id:uid(), data:diasAtras(13-d), itens:[{pid:p.id, nome:p.nome, cor:c.nome, tam:t, qtd, preco:p.preco}], total:p.preco*qtd, pag:pags[k%pags.length], vendedor:vend[k%3].id}); k++; } });
-  const m = hoje().slice(0,8);
-  const despesas = [
-    {id:uid(), desc:"Aluguel da loja", cat:"Aluguel", valor:4800, venc:m+"05", pago:true},
-    {id:uid(), desc:"Fornecedor — Tecelagem Aurora", cat:"Fornecedor", valor:6350, venc:m+"12", pago:true},
-    {id:uid(), desc:"Folha de pagamento", cat:"Salários", valor:8500, venc:m+"05", pago:true},
-    {id:uid(), desc:"Energia", cat:"Contas", valor:612.4, venc:m+"20", pago:false},
-    {id:uid(), desc:"Fornecedor — Calçados Sola", cat:"Fornecedor", valor:3980, venc:m+"25", pago:false},
-    {id:uid(), desc:"Anúncios Instagram", cat:"Marketing", valor:900, venc:m+"28", pago:false}
-  ];
-  return {
-    v:1, iniciado:false,
-    loja:{nome:"Ateliê Lume", cor:CORES_MARCA[0], cnpj:"12.345.678/0001-90", endereco:"Rua das Flores, 120 — Centro", cidade:"São Paulo · SP", telefone:"(11) 3333-4444", instagram:"@ateliélume", horario:"Seg a Sáb · 10h às 19h", minPadrao:2},
-    listas:{ colecoes:["Verão 26","Básicos","Festa"], pagamentos:["Pix","Crédito","Débito","Dinheiro"], categorias:["Feminino","Masculino","Sapatos","Acessórios"], despesas:["Aluguel","Fornecedor","Salários","Contas","Marketing","Outros"] },
-    produtos, vendas, despesas, equipe, papel:"dono", view:"inicio", cat:"Todas", finTab:"mes", missoes:{}, pedidos:[], fimVisto:false
-  };
+function timeHTML(pre,val){
+  const [h,m]=(val||"").split(":");
+  let hs='<option value="">sem hora</option>';
+  for(let k=0;k<24;k++){const i=(k+8)%24;const v=pad(i);hs+='<option value="'+v+'"'+(v===h?" selected":"")+'>'+h12(i)+'</option>'}
+  const mins=!m||MINS.includes(m)?MINS:[...MINS,m].sort();
+  let ms="";for(const v of mins){ms+='<option value="'+v+'"'+(v===(m||"00")?" selected":"")+'>'+v+'</option>'}
+  return '<select id="'+pre+'H" aria-label="Hora">'+hs+'</select><select id="'+pre+'M" aria-label="Minutos">'+ms+'</select>';
+}
+const MES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+function readDate(pre){return $(pre+"Date").value||""}
+function showWd(pre){
+  const el=$(pre+"Wd");if(!el) return;
+  const v=readDate(pre);
+  el.textContent=v?"→ "+WD[fromIso(v).getDay()]+", "+short(v)+(fromIso(v).getFullYear()!==today0().getFullYear()?"/"+fromIso(v).getFullYear():""):"";
+}
+document.addEventListener("change",e=>{if(e.target.classList.contains("dsel")) showWd(e.target.dataset.pre)});
+document.addEventListener("input",e=>{if(e.target.classList.contains("dsel")) showWd(e.target.dataset.pre)});
+const readTime=pre=>{const h=$(pre+"H").value;return h?h+":"+$(pre+"M").value:""};
+function typesHTML(pre,sel){
+  return TYPES.map(([v,l])=>'<button type="button" class="type" data-type="'+v+'" data-pre="'+pre+'" aria-pressed="'+(v===sel)+'">'+l+'</button>').join("");
 }
 
-/* ===== início ===== */
-function iniciar(){
-  S = carregarSalvo() || semente();
-  aplicarCor();
-  if (!S.iniciado) mostrarEntrada(); else abrirApp();
-}
-function aplicarCor(){ document.documentElement.style.setProperty("--acc", S.loja.cor); }
-function mostrarEntrada(){
-  $("#app").hidden = true; $("#missBtn").hidden = true; $("#miss").hidden = true; $("#entrada").hidden = false;
-  $("#eCor").innerHTML = CORES_MARCA.map(c=>`<button type="button" aria-label="Cor ${c}" class="${c===S.loja.cor?"on":""}" style="background:${c}" data-act="eCor" data-v="${c}"></button>`).join("");
-  setTimeout(()=>$("#eNome").focus(), 50);
-}
-function abrirApp(){
-  $("#entrada").hidden = true; $("#app").hidden = false; $("#missBtn").hidden = false;
-  $("#papelSel").innerHTML = Object.entries(PAPEIS).map(([k,p])=>`<option value="${k}" ${S.papel===k?"selected":""}>${p.nome}</option>`).join("");
-  render();
-}
+/* ---------- state ---------- */
+let col=null,docs=[],openId=null,armedId=null,histFilter="all",current="list";
+let nType="";
 
-/* ===== shell ===== */
-function telasVisiveis(){ return TELAS.filter(t=>PAPEIS[S.papel].telas.includes(t.k)); }
-function render(){
-  aplicarCor();
-  const vis = telasVisiveis();
-  if (!vis.some(t=>t.k===S.view)) S.view = vis[0].k;
-  const ini = (S.loja.nome||"L").trim().charAt(0).toUpperCase();
-  $("#side").innerHTML = `<div class="brand"><div class="logo">${h(ini)}</div><div><b>${h(S.loja.nome)}</b><small>${h(S.loja.cidade)}</small></div></div>
-    ${TELAS.map(t=>{ const ok = vis.some(v=>v.k===t.k); return ok?`<button class="nav ${S.view===t.k?"on":""}" data-act="go" data-v="${t.k}">${ic(t.k)}${t.t}</button>`:`<button class="nav" data-act="semAcesso" data-v="${t.k}" style="opacity:.45">${ic(t.k)}${t.t}<span class="lock">🔒</span></button>`; }).join("")}
-    <div class="side-foot">Feito com <b>MINTESS</b><br>Sistemas sob medida que você controla.</div>`;
-  $("#bottom").innerHTML = vis.map(t=>`<button class="${S.view===t.k?"on":""}" data-act="go" data-v="${t.k}">${ic(t.k,20)}${t.c||t.t}</button>`).join("");
-  $("#ttl").textContent = TELAS.find(t=>t.k===S.view).t;
-  $("#papelSel").value = S.papel;
-  ({inicio:vInicio, vender:vVender, estoque:vEstoque, financeiro:vFinanceiro, equipe:vEquipe, empresa:vEmpresa, pedir:vPedir})[S.view]();
-  renderMissoes();
-  salvar();
-}
+$("todayLabel").textContent=short(iso(today0()))+" · "+WD[today0().getDay()];
+$("outlineDay").textContent=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][today0().getDay()];
 
-/* ===== cálculos ===== */
-const pid = id => S.produtos.find(p=>p.id===id);
-const totalPeca = p => Object.values(p.estoque).reduce((s,n)=>s+n,0);
-const celulasBaixas = p => Object.values(p.estoque).filter(n=>n<=p.min).length;
-const estado = (p,n) => n===0 ? "bad" : n<=p.min ? "warn" : "ok";
-function vendasDo(dia){ return S.vendas.filter(v=>v.data===dia); }
-function vendasMes(){ const m=hoje().slice(0,7); return S.vendas.filter(v=>v.data.slice(0,7)===m); }
+function resetNew(){
+  $("nDate").value=resetNew.keep||iso(today0());showWd("n");
+  $("nTimeWrap").innerHTML=timeHTML("n","");
+  nType="";$("nTypes").innerHTML=typesHTML("n","");
+  $("nTitle").value="";
+}
+resetNew();
 
-/* ===== INÍCIO ===== */
-function vInicio(){
-  const vh = vendasDo(hoje()), fat = vh.reduce((s,v)=>s+v.total,0);
-  const vm = vendasMes(), fatM = vm.reduce((s,v)=>s+v.total,0);
-  const acabando = S.produtos.reduce((s,p)=>s+celulasBaixas(p),0);
-  const parados = S.produtos.filter(p=>diffDias(p.ultimaVenda)>=60);
-  const dias = Array.from({length:7},(_,i)=>diasAtras(6-i));
-  const vals = dias.map(d=>vendasDo(d).reduce((s,v)=>s+v.total,0)); const mx = Math.max(...vals,1);
-  const sem = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-  const rank = {}; vm.forEach(v=>v.itens.forEach(i=>{ rank[i.nome]=(rank[i.nome]||0)+i.qtd; }));
-  const top = Object.entries(rank).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  $("#view").innerHTML = `
-    <div class="cards">
-      <div class="card"><div class="l">Vendas hoje</div><div class="v num">${brl(fat)}</div><div class="d">${vh.length} venda(s)</div></div>
-      <div class="card"><div class="l">Vendas no mês</div><div class="v num">${brl(fatM)}</div><div class="d">ticket médio ${brl(vm.length?fatM/vm.length:0)}</div></div>
-      <div class="card warn"><div class="l">Tamanhos acabando</div><div class="v">${acabando}</div><div class="d">cor/tamanho com estoque baixo</div></div>
-      <div class="card bad"><div class="l">Peças paradas</div><div class="v">${parados.length}</div><div class="d">sem venda há 60+ dias</div></div>
-    </div>
-    <div class="grid2">
-      <div class="panel"><h3>Vendas dos últimos 7 dias</h3>
-        <div class="bars">${vals.map((v,i)=>`<div><span class="num">${v?Math.round(v/100)/10+"k":""}</span><i style="height:${Math.max(3,v/mx*90)}px"></i>${sem[new Date(dias[i]+"T12:00:00").getDay()]}</div>`).join("")}</div></div>
-      <div class="panel"><h3>Mais vendidas do mês</h3>${top.length?`<table><tbody>${top.map(([n,q],i)=>`<tr><td><b>${i+1}.</b> ${h(n)}</td><td class="r num"><b>${q}</b> un.</td></tr>`).join("")}</tbody></table>`:`<div class="empty">Sem vendas ainda.</div>`}</div>
-    </div>
-    <div class="panel"><h3>Precisa de atenção<span class="sp"></span>${pode("telas").includes("estoque")?`<button class="btn sec sm" data-act="go" data-v="estoque">Ver estoque</button>`:""}</h3>
-      ${[...S.produtos].filter(p=>diffDias(p.ultimaVenda)<60).sort((a,b)=>celulasBaixas(b)-celulasBaixas(a)).slice(0,4).filter(p=>celulasBaixas(p)).map(p=>`<div class="row" style="padding:5px 0;border-bottom:1px solid var(--s3)"><span style="flex:1">${h(p.nome)}</span><span class="chip warn">${celulasBaixas(p)} tamanho(s) acabando</span></div>`).join("")}
-      ${parados.map(p=>`<div class="row" style="padding:5px 0;border-bottom:1px solid var(--s3)"><span style="flex:1">${h(p.nome)}</span><span class="chip bad">parada há ${diffDias(p.ultimaVenda)} dias</span></div>`).join("")}
-    </div>`;
+/* ---------- tabs ---------- */
+const VIEWS={new:"view-new",list:"view-list",hist:"view-hist"};
+function show(which){
+  current=which;openId=null;armedId=null;
+  for(const [k,id] of Object.entries(VIEWS)){$(id).hidden=k!==which;$("tab-"+k).setAttribute("aria-selected",k===which)}
+  if(which==="new"){$("newStatus").textContent=""}
+  renderAll();
 }
+for(const k of Object.keys(VIEWS)) $("tab-"+k).addEventListener("click",()=>show(k));
+show("list");
 
-/* ===== VENDER ===== */
-let CART = [];
-function vVender(){
-  const cats = ["Todas", ...S.listas.categorias];
-  const arr = S.produtos.filter(p=>S.cat==="Todas"||p.cat===S.cat);
-  const tot = CART.reduce((s,i)=>s+i.preco*i.qtd,0);
-  $("#view").innerHTML = `
-    <div class="grid2">
-      <div>
-        <div class="tabs">${cats.map(c=>`<button class="tab ${S.cat===c?"on":""}" data-act="cat" data-v="${h(c)}">${h(c)}</button>`).join("")}</div>
-        <div class="prods">${arr.map(cardProd).join("")}</div>
-      </div>
-      <div><div class="panel" style="position:sticky;top:46px"><h3>${ic("vender")} Venda atual</h3>
-        ${CART.length?`<div class="cart">${CART.map((i,ix)=>`<div class="cl"><span class="n"><b>${h(i.nome)}</b><br><span class="small muted">${h(i.cor)} · ${h(i.tam)}</span></span><span class="num">${i.qtd}× ${brl(i.preco)}</span><button class="btn ghost sm" data-act="cartDel" data-v="${ix}" aria-label="Tirar">✕</button></div>`).join("")}</div>
-          <div class="tot"><span>Total</span><span class="num">${brl(tot)}</span></div>
-          <div class="f" style="margin-top:10px"><label>Pagamento</label><div class="pk" data-pk="pag">${S.listas.pagamentos.map((p,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${h(p)}">${h(p)}</button>`).join("")}</div><input type="hidden" id="pag" value="${h(S.listas.pagamentos[0]||"")}"></div>
-          <div class="f"><label>Vendedor(a)</label><div class="pk" data-pk="vend">${S.equipe.filter(e=>e.status==="ativo"&&["vendedor","gerente"].includes(e.papel)).map((e,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${e.id}">${h(e.nome.split(" ")[0])}</button>`).join("")}</div><input type="hidden" id="vend" value="${(S.equipe.find(e=>e.status==="ativo"&&["vendedor","gerente"].includes(e.papel))||{}).id||""}"></div>
-          <button class="btn ok full" data-act="finalizar">Finalizar venda · ${brl(tot)}</button>`
-        :`<div class="empty">Toque numa peça para adicionar.</div>`}
-      </div></div>
-    </div>`;
-}
-function cardProd(p){
-  const t = totalPeca(p), b = celulasBaixas(p);
-  return `<button class="prod" data-act="${S.view==="vender"?"addProd":"verProd"}" data-id="${p.id}">
-    <div class="ph" style="background:${p.cores[0].hex}22">${fotoSvg(p)}<span class="dots">${p.cores.map(c=>`<i style="background:${c.hex}"></i>`).join("")}</span></div>
-    <div class="b"><span class="small muted">${h(p.cat)} · ${h(p.colecao)}</span><b>${h(p.nome)}</b>
-      <span class="row" style="justify-content:space-between"><span class="pr num">${brl(p.preco)}</span><span class="small ${t===0?"":b?"":"muted"}" style="color:${t===0?"var(--bad)":b?"var(--warn)":""}">${t} un.</span></span>
-      <span class="mini">${p.cores.flatMap(c=>p.tams.map(tm=>`<i class="" style="background:${({ok:"#BFE3CF",warn:"#EBD3A6",bad:"#EFC1BC"})[estado(p,p.estoque[c.nome+"|"+tm]||0)]}"></i>`)).join("")}</span>
-    </div></button>`;
-}
-function fotoSvg(p){
-  const c = p.cores[0].hex, s = 'fill="'+c+'" stroke="rgba(0,0,0,.18)" stroke-width="1.2"';
-  const f = {
-    Feminino: /calça/i.test(p.nome)?`<path ${s} d="M22 8h20l3 50h-10l-3-34-3 34H19z"/>`:/saia/i.test(p.nome)?`<path ${s} d="M24 12h16l10 40H14z"/>`:/blusa/i.test(p.nome)?`<path ${s} d="M20 10l8-4h8l8 4 8 10-8 5v25H20V25l-8-5z"/>`:`<path ${s} d="M24 6h16l2 12 10 40H12l10-40z"/>`,
-    Masculino: /bermuda/i.test(p.nome)?`<path ${s} d="M18 12h28l4 32H36l-4-18-4 18H14z"/>`:`<path ${s} d="M20 10l8-4h8l8 4 10 10-8 6-4-4v34H22V22l-4 4-8-6z"/>`,
-    Sapatos: `<path ${s} d="M8 40c0-6 4-10 10-10 6 0 10-6 14-8 4 4 10 8 18 10 4 1 6 4 6 8v4H8z"/>`,
-    "Acessórios": /bolsa/i.test(p.nome)?`<path fill="none" stroke="${c}" stroke-width="3" d="M22 24c0-10 20-10 20 0"/><rect ${s} x="14" y="24" width="36" height="26" rx="5"/>`:/óculos/i.test(p.nome)?`<circle ${s} cx="20" cy="32" r="10"/><circle ${s} cx="44" cy="32" r="10"/><path stroke="${c}" stroke-width="3" d="M30 32h4"/>`:/cinto/i.test(p.nome)?`<rect ${s} x="6" y="28" width="52" height="9" rx="3"/><rect fill="none" stroke="#B8A47A" stroke-width="3" x="24" y="25" width="12" height="15" rx="2"/>`:`<path ${s} d="M10 14h44L40 50H24z"/>`
-  }[p.cat] || `<rect ${s} x="14" y="14" width="36" height="36" rx="6"/>`;
-  return `<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">${f}</svg>`;
-}
-function escolherVariacao(id){
-  const p = pid(id);
-  const disp = (c,t)=>p.estoque[c+"|"+t]||0;
-  const c0 = p.cores.find(c=>p.tams.some(t=>disp(c.nome,t)>0)) || p.cores[0];
-  modal(`Adicionar · ${h(p.nome)}`, `
-    <div class="row" style="margin-bottom:12px"><div class="ph" style="width:80px;height:80px;border-radius:12px;background:${p.cores[0].hex}22">${fotoSvg(p)}</div><div><b style="font-size:16px">${brl(p.preco)}</b><div class="small muted">${h(p.cat)} · ${h(p.colecao)}</div></div></div>
-    <div class="f"><label>Cor</label><div class="pk" id="vCor">${p.cores.map(c=>`<button type="button" class="${c.nome===c0.nome?"on":""}" data-act="vCor" data-v="${h(c.nome)}"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.hex};margin-right:5px;vertical-align:-1px;border:1px solid rgba(0,0,0,.15)"></i>${h(c.nome)}</button>`).join("")}</div></div>
-    <div class="f"><label>Tamanho <span class="muted">(riscado = sem estoque)</span></label><div class="pk" id="vTam"></div></div>
-    <div class="f"><label>Quantidade</label><div class="pk" id="vQtd">${[1,2,3].map(q=>`<button type="button" class="${q===1?"on":""}" data-act="vQtd" data-v="${q}">${q}</button>`).join("")}</div></div>`,
-    `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="addCart" data-id="${p.id}">Adicionar à venda</button>`);
-  window.__v = {cor:c0.nome, tam:null, qtd:1};
-  pintarTams(p);
-}
-function pintarTams(p){
-  const v = window.__v, disp = t=>p.estoque[v.cor+"|"+t]||0;
-  if (!v.tam || !disp(v.tam)) v.tam = p.tams.find(t=>disp(t)>0) || null;
-  $("#vTam").innerHTML = p.tams.map(t=>`<button type="button" class="${t===v.tam?"on":""} ${disp(t)?"":"dis"}" data-act="vTam" data-v="${h(t)}">${h(t)} <span class="small" style="opacity:.7">(${disp(t)})</span></button>`).join("");
-}
-
-/* ===== ESTOQUE ===== */
-function vEstoque(){
-  const cats = ["Todas", ...S.listas.categorias];
-  const arr = S.produtos.filter(p=>S.cat==="Todas"||p.cat===S.cat);
-  const totPecas = S.produtos.reduce((s,p)=>s+totalPeca(p),0);
-  const valor = S.produtos.reduce((s,p)=>s+totalPeca(p)*(pode("verCusto")?p.custo:p.preco),0);
-  $("#view").innerHTML = `
-    <div class="cards">
-      <div class="card"><div class="l">Peças em estoque</div><div class="v">${totPecas}</div><div class="d">${S.produtos.length} modelos</div></div>
-      <div class="card"><div class="l">${pode("verCusto")?"Valor em estoque (custo)":"Valor em estoque (venda)"}</div><div class="v num">${brl(valor)}</div><div class="d">${pode("verCusto")?"":"custo visível só p/ gerência"}</div></div>
-      <div class="card warn"><div class="l">Tamanhos acabando</div><div class="v">${S.produtos.reduce((s,p)=>s+celulasBaixas(p),0)}</div><div class="d">abaixo do mínimo</div></div>
-      <div class="card bad"><div class="l">Zerados</div><div class="v">${S.produtos.reduce((s,p)=>s+Object.values(p.estoque).filter(n=>!n).length,0)}</div><div class="d">cor/tamanho sem peça</div></div>
-    </div>
-    <div class="row" style="margin-bottom:12px"><div class="tabs" style="margin:0">${cats.map(c=>`<button class="tab ${S.cat===c?"on":""}" data-act="cat" data-v="${h(c)}">${h(c)}</button>`).join("")}</div><span style="flex:1"></span>
-      ${pode("editarEstoque")?`<button class="btn sec sm" data-act="importar">⇪ Importar planilha</button><button class="btn pri sm" data-act="novaPeca">＋ Nova peça</button>`:`<span class="chip">👁 só consulta</span>`}</div>
-    <div class="prods">${arr.map(cardProd).join("")}</div>`;
-}
-function verProd(id){
-  const p = pid(id), ed = pode("editarEstoque");
-  window.__pid = id;
-  modal(h(p.nome), `
-    <div class="row" style="margin-bottom:14px;align-items:flex-start">
-      <div class="ph" style="width:96px;height:96px;border-radius:14px;background:${p.cores[0].hex}22">${fotoSvg(p)}</div>
-      <div style="flex:1;min-width:200px">
-        <div class="small muted">${h(p.cat)} · coleção ${h(p.colecao)}</div>
-        <div class="row" style="margin-top:6px">
-          <div class="f" style="margin:0;max-width:150px"><label>Preço</label><input class="in" id="pPreco" ${ed?"":"disabled"} inputmode="decimal" value="${String(p.preco).replace(".",",")}"></div>
-          ${pode("verCusto")?`<div class="f" style="margin:0;max-width:150px"><label>Custo</label><input class="in" disabled value="${brl(p.custo)}"></div><div class="small muted" style="margin-top:16px">margem ${Math.round((1-p.custo/p.preco)*100)}%</div>`:""}
-        </div>
-        <div class="small muted" style="margin-top:6px">Última venda: ${diffDias(p.ultimaVenda)===0?"hoje":"há "+diffDias(p.ultimaVenda)+" dias"}</div>
-      </div>
-    </div>
-    <div class="panel" style="margin:0"><h3>Grade de estoque <span class="sp"></span><span class="small muted" style="font-weight:500">mínimo: ${p.min}</span></h3>
-      <div style="overflow-x:auto"><table class="grade"><thead><tr><th></th>${p.tams.map(t=>`<th>${h(t)}</th>`).join("")}</tr></thead><tbody>
-      ${p.cores.map(c=>`<tr><th class="cor"><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${c.hex};vertical-align:-2px;margin-right:6px;border:1px solid rgba(0,0,0,.15)"></i>${h(c.nome)}</th>${p.tams.map(t=>{ const n=p.estoque[c.nome+"|"+t]||0; return `<td><div class="cell ${estado(p,n)}">${ed?`<button data-act="gMenos" data-v="${h(c.nome+"|"+t)}" aria-label="Menos">−</button>`:""}<span>${n}</span>${ed?`<button data-act="gMais" data-v="${h(c.nome+"|"+t)}" aria-label="Mais">+</button>`:""}</div></td>`; }).join("")}</tr>`).join("")}
-      </tbody></table></div>
-      <div class="legend"><span><i style="background:#BFE3CF"></i>ok</span><span><i style="background:#EBD3A6"></i>acabando</span><span><i style="background:#EFC1BC"></i>zerado</span></div>
-    </div>`,
-    ed?`<button class="btn sec" data-act="fechar">Fechar</button><button class="btn pri" data-act="salvarPreco">Salvar preço</button>`:`<button class="btn sec" data-act="fechar">Fechar</button>`, {wide:true});
-}
-function ajustarGrade(k, d){
-  const p = pid(window.__pid), preco = $("#pPreco")?.value;
-  p.estoque[k] = Math.max(0, (p.estoque[k]||0) + d);
-  render(); verProd(p.id);
-  if (preco != null) $("#pPreco").value = preco;
-  missao("grade");
-}
-function novaPeca(){
-  modal("Nova peça", `
-    <div class="f"><label>Nome <em>*</em></label><input class="in" id="nNome" placeholder="Ex.: Jaqueta jeans"></div>
-    <div class="f"><label>Categoria</label><div class="pk" data-pk="nCat">${S.listas.categorias.map((c,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${h(c)}">${h(c)}</button>`).join("")}</div><input type="hidden" id="nCat" value="${h(S.listas.categorias[0])}"></div>
-    <div class="f"><label>Coleção</label><div class="pk" data-pk="nCol">${S.listas.colecoes.map((c,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${h(c)}">${h(c)}</button>`).join("")}</div><input type="hidden" id="nCol" value="${h(S.listas.colecoes[0])}"></div>
-    <div class="row"><div class="f" style="flex:1"><label>Preço <em>*</em></label><input class="in" id="nPreco" inputmode="decimal" placeholder="199,90"></div><div class="f" style="flex:1"><label>Custo</label><input class="in" id="nCusto" inputmode="decimal" placeholder="80,00"></div></div>
-    <div class="f"><label>Cores (separe por vírgula)</label><input class="in" id="nCores" value="Preto, Branco"></div>
-    <div class="f"><label>Tamanhos</label><div class="pk" data-pk="nTam">${[["P, M, G, GG","Roupa"],["34-39","Calçado fem."],["38-43","Calçado masc."],["U","Único"]].map((t,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${t[0]}">${t[1]}</button>`).join("")}</div><input type="hidden" id="nTam" value="P, M, G, GG"></div>`,
-    `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="salvarPeca">Cadastrar</button>`);
-}
-function tamsDe(v){ if (v==="34-39") return ["34","35","36","37","38","39"]; if (v==="38-43") return ["38","39","40","41","42","43"]; return v.split(",").map(x=>x.trim()).filter(Boolean); }
-const PALETA = {preto:"#232323",branco:"#F5F5F2","off-white":"#F1EBDD",azul:"#4E6FA8",marinho:"#2B3A55",vermelho:"#B23A3A",vinho:"#6E2433",rosa:"#E4A5B5",verde:"#5B7B3A",oliva:"#6F7A45",bege:"#CDB892",areia:"#D9C3A0",caramelo:"#A9693A",marrom:"#6B4A31",cinza:"#9A9C9E",mescla:"#9A9C9E",amarelo:"#E3B23C",jeans:"#4A6A93"};
-const hexDe = n => PALETA[n.trim().toLowerCase()] || "#B5A99C";
-function importar(){
-  modal("Importar planilha", `
-    <p class="muted" style="margin-bottom:10px">Cole aqui as linhas da planilha do fornecedor (ou de um Excel): <b>nome; categoria; preço; quantidade</b>. Para testar, já deixamos um exemplo.</p>
-    <textarea class="in" id="impTxt" style="min-height:140px;font-family:ui-monospace,Menlo,monospace;font-size:12px">Jaqueta jeans; Feminino; 329,90; 8
-Polo piquet; Masculino; 139,90; 12
-Boné aba curva; Acessórios; 79,90; 10</textarea>
-    <p class="small muted" style="margin-top:8px">No sistema real você também envia o arquivo .xlsx direto. Isto é <span class="lv lv1">Nível 1</span>: você mesmo faz.</p>`,
-    `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="impOk">Importar</button>`);
-}
-
-/* ===== FINANCEIRO ===== */
-function vFinanceiro(){
-  const vm = vendasMes(), ent = vm.reduce((s,v)=>s+v.total,0);
-  const m = hoje().slice(0,7), dm = S.despesas.filter(d=>d.venc.slice(0,7)===m);
-  const sai = dm.filter(d=>d.pago).reduce((s,d)=>s+d.valor,0), apagar = dm.filter(d=>!d.pago).reduce((s,d)=>s+d.valor,0);
-  const porPag = {}; vm.forEach(v=>{ porPag[v.pag]=(porPag[v.pag]||0)+v.total; });
-  const comiss = S.equipe.filter(e=>e.comissao).map(e=>({e, v: vm.filter(v=>v.vendedor===e.id).reduce((s,v)=>s+v.total,0)}));
-  $("#view").innerHTML = `
-    <div class="cards">
-      <div class="card"><div class="l">Entradas do mês</div><div class="v num" style="color:var(--ok)">${brl(ent)}</div><div class="d">${vm.length} vendas</div></div>
-      <div class="card"><div class="l">Saídas pagas</div><div class="v num">${brl(sai)}</div><div class="d">despesas do mês</div></div>
-      <div class="card warn"><div class="l">A pagar</div><div class="v num">${brl(apagar)}</div><div class="d">${dm.filter(d=>!d.pago).length} conta(s)</div></div>
-      <div class="card"><div class="l">Resultado parcial</div><div class="v num" style="color:${ent-sai>=0?"var(--ok)":"var(--bad)"}">${brl(ent-sai)}</div><div class="d">entradas − saídas pagas</div></div>
-    </div>
-    <div class="grid2">
-      <div class="panel"><h3>Contas do mês<span class="sp"></span><button class="btn pri sm" data-act="novaDespesa">＋ Nova despesa</button></h3>
-        <table><thead><tr><th>Vence</th><th>Descrição</th><th class="r">Valor</th><th></th></tr></thead><tbody>
-        ${[...dm].sort((a,b)=>a.venc.localeCompare(b.venc)).map(d=>`<tr><td class="num">${dataBR(d.venc)}</td><td>${h(d.desc)}<div class="small muted">${h(d.cat)}</div></td><td class="r num">${brl(d.valor)}</td><td class="r">${d.pago?`<span class="chip ok">pago</span>`:`<button class="btn sec sm" data-act="pagar" data-id="${d.id}">Pagar</button>`}</td></tr>`).join("")}
-        </tbody></table></div>
-      <div>
-        <div class="panel"><h3>Entradas por forma de pagamento</h3>${Object.entries(porPag).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div style="margin-bottom:8px"><div class="row" style="justify-content:space-between"><span>${h(k)}</span><b class="num">${brl(v)}</b></div><div style="height:6px;background:var(--s3);border-radius:9px;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:${ent?v/ent*100:0}%;background:var(--acc)"></i></div></div>`).join("")||`<div class="empty">—</div>`}</div>
-        <div class="panel"><h3>Comissões do mês</h3><table><tbody>${comiss.map(c=>`<tr><td>${h(c.e.nome)}<div class="small muted">${c.e.comissao}% de ${brl(c.v)}</div></td><td class="r num"><b>${brl(c.v*c.e.comissao/100)}</b></td></tr>`).join("")}</tbody></table></div>
-      </div>
-    </div>`;
-}
-function novaDespesa(){
-  modal("Nova despesa", `
-    <div class="f"><label>Descrição <em>*</em></label><input class="in" id="dDesc" placeholder="Ex.: Embalagens"></div>
-    <div class="f"><label>Categoria</label><div class="pk" data-pk="dCat">${S.listas.despesas.map((c,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${h(c)}">${h(c)}</button>`).join("")}</div><input type="hidden" id="dCat" value="${h(S.listas.despesas[0])}"></div>
-    <div class="row"><div class="f" style="flex:1"><label>Valor <em>*</em></label><input class="in" id="dValor" inputmode="decimal" placeholder="350,00"></div><div class="f" style="flex:1"><label>Vencimento</label><input class="in" type="date" id="dVenc" value="${hoje()}"></div></div>
-    <div class="f"><label>Situação</label><div class="pk" data-pk="dPago"><button type="button" class="on" data-pickv="nao">A pagar</button><button type="button" data-pickv="sim">Já paga</button></div><input type="hidden" id="dPago" value="nao"></div>`,
-    `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="salvarDespesa">Lançar</button>`);
-}
-
-/* ===== EQUIPE E RH ===== */
-function vEquipe(){
-  const ver = pode("verSalario"), vm = vendasMes();
-  const folha = S.equipe.filter(e=>e.status==="ativo").reduce((s,e)=>s+e.salario,0);
-  const mostra = (k) => PAPEIS[k];
-  $("#view").innerHTML = `
-    <div class="cards">
-      <div class="card"><div class="l">Pessoas na equipe</div><div class="v">${S.equipe.filter(e=>e.status!=="inativo").length}</div><div class="d">${S.equipe.filter(e=>e.status==="convidado").length} convite(s) pendente(s)</div></div>
-      <div class="card"><div class="l">Folha mensal</div><div class="v num">${ver?brl(folha):"🔒"}</div><div class="d">${ver?"salários fixos":"visível só p/ dono e financeiro"}</div></div>
-      <div class="card"><div class="l">Melhor vendedor(a) no mês</div><div class="v" style="font-size:16px">${h((S.equipe.map(e=>({e,v:vm.filter(v=>v.vendedor===e.id).reduce((s,v)=>s+v.total,0)})).sort((a,b)=>b.v-a.v)[0]||{e:{nome:"—"}}).e.nome)}</div><div class="d">por valor vendido</div></div>
-      <div class="card"><div class="l">Aniversário de casa</div><div class="v" style="font-size:16px">${h(S.equipe.filter(e=>e.status==="ativo"&&e.papel!=="dono").sort((a,b)=>a.admissao.localeCompare(b.admissao))[0]?.nome||"—")}</div><div class="d">mais tempo na loja</div></div>
-    </div>
-    <div class="panel"><h3>Equipe<span class="sp"></span>${S.papel==="dono"||S.papel==="gerente"?`<button class="btn pri sm" data-act="convidar">＋ Convidar pessoa</button>`:""}</h3>
-      <div style="overflow-x:auto"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Acesso</th><th class="hide-m">Na loja desde</th><th class="r">Salário</th><th class="r">Comissão</th></tr></thead><tbody>
-      ${S.equipe.map(e=>`<tr class="${S.papel==="dono"&&e.papel!=="dono"?"click":""}" ${S.papel==="dono"&&e.papel!=="dono"?`data-act="editPessoa" data-id="${e.id}"`:""}><td><b>${h(e.nome)}</b><div class="small muted">${h(e.email)}</div></td><td>${h(e.cargo)}</td><td><span class="chip acc">${mostra(e.papel).nome}</span>${e.status==="convidado"?` <span class="chip warn">convite enviado</span>`:""}</td><td class="hide-m num">${dataBR(e.admissao)}/${e.admissao.slice(2,4)}</td><td class="r num">${ver?(e.salario?brl(e.salario):"—"):"🔒"}</td><td class="r">${e.comissao?e.comissao+"%":"—"}</td></tr>`).join("")}
-      </tbody></table></div></div>
-    <div class="panel"><h3>Níveis de acesso<span class="sp"></span><span class="small muted" style="font-weight:500">quem vê o quê</span></h3>
-      <div style="overflow-x:auto"><table class="perm"><thead><tr><th>Tela</th>${Object.values(PAPEIS).map(p=>`<th>${p.nome}</th>`).join("")}</tr></thead><tbody>
-      ${TELAS.map(t=>`<tr><td>${t.t}</td>${Object.values(PAPEIS).map(p=>p.telas.includes(t.k)?`<td class="yes">✓</td>`:`<td class="no">—</td>`).join("")}</tr>`).join("")}
-      <tr><td>Ver custo e margem</td>${Object.values(PAPEIS).map(p=>p.verCusto?`<td class="yes">✓</td>`:`<td class="no">—</td>`).join("")}</tr>
-      <tr><td>Ver salários</td>${Object.values(PAPEIS).map(p=>p.verSalario?`<td class="yes">✓</td>`:`<td class="no">—</td>`).join("")}</tr>
-      </tbody></table></div>
-      <p class="small muted" style="margin-top:8px">Dar acesso a alguém é <span class="lv lv1">Nível 1</span>. Criar um tipo de acesso novo é <span class="lv lv3">Nível 3</span>. Teste no topo: <b>Ver como</b>.</p></div>`;
-}
-function convidar(){
-  modal("Convidar pessoa", `
-    <div class="f"><label>Nome <em>*</em></label><input class="in" id="cNome" placeholder="Ex.: Bianca Souza"></div>
-    <div class="f"><label>E-mail <em>*</em></label><input class="in" id="cEmail" type="email" placeholder="bianca@email.com"></div>
-    <div class="f"><label>Cargo</label><div class="pk" data-pk="cCargo">${["Vendedora","Vendedor","Caixa","Estoquista"].map((c,i)=>`<button type="button" class="${i===0?"on":""}" data-pickv="${c}">${c}</button>`).join("")}</div><input type="hidden" id="cCargo" value="Vendedora"></div>
-    <div class="f"><label>O que ela pode fazer?</label><div class="pk" data-pk="cPapel">${Object.entries(PAPEIS).filter(([k])=>k!=="dono").map(([k,p])=>`<button type="button" class="${k==="vendedor"?"on":""}" data-pickv="${k}">${p.nome}</button>`).join("")}</div><input type="hidden" id="cPapel" value="vendedor"></div>
-    <div class="row"><div class="f" style="flex:1"><label>Salário</label><input class="in" id="cSal" inputmode="decimal" value="1.900,00"></div><div class="f" style="flex:1"><label>Comissão (%)</label><div class="pk" data-pk="cCom">${["0","2","3","5"].map(c=>`<button type="button" class="${c==="3"?"on":""}" data-pickv="${c}">${c}%</button>`).join("")}</div><input type="hidden" id="cCom" value="3"></div></div>`,
-    `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="convidarOk">Gerar convite</button>`);
-}
-function editPessoa(id){
-  const e = S.equipe.find(x=>x.id===id); window.__eid = id;
-  modal(h(e.nome), `
-    <div class="f"><label>O que pode fazer</label><div class="pk" data-pk="ePapel">${Object.entries(PAPEIS).filter(([k])=>k!=="dono").map(([k,p])=>`<button type="button" class="${k===e.papel?"on":""}" data-pickv="${k}">${p.nome}</button>`).join("")}</div><input type="hidden" id="ePapel" value="${e.papel}"></div>
-    <div class="row"><div class="f" style="flex:1"><label>Salário</label><input class="in" id="eSal" inputmode="decimal" value="${String(e.salario).replace(".",",")}"></div><div class="f" style="flex:1"><label>Comissão (%)</label><input class="in" id="eCom" inputmode="decimal" value="${e.comissao}"></div></div>
-    <div class="f"><label>Situação</label><div class="pk" data-pk="eSt">${[["ativo","Ativo"],["inativo","Desligado"]].map(([k,t])=>`<button type="button" class="${(e.status==="inativo"?"inativo":"ativo")===k?"on":""}" data-pickv="${k}">${t}</button>`).join("")}</div><input type="hidden" id="eSt" value="${e.status==="inativo"?"inativo":"ativo"}"></div>`,
-    `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="salvarPessoa">Salvar</button>`);
-}
-
-/* ===== MINHA EMPRESA ===== */
-function vEmpresa(){
-  const L = S.loja;
-  const lista = (k,t) => `<div class="f"><label>${t}</label><div class="row">${S.listas[k].map((x,i)=>`<span class="chip" style="padding-right:4px">${h(x)} <button class="btn ghost sm" style="min-height:20px;padding:0 4px" data-act="listaDel" data-k="${k}" data-i="${i}" aria-label="Remover ${h(x)}">✕</button></span>`).join("")}<button class="btn sec sm" data-act="listaAdd" data-k="${k}" data-t="${h(t)}">＋</button></div></div>`;
-  $("#view").innerHTML = `
-    <div class="grid2">
-      <div class="panel"><h3>${ic("empresa")} Dados da empresa</h3>
-        <div class="f"><label>Nome da loja</label><input class="in" data-loja="nome" value="${h(L.nome)}"></div>
-        <div class="row"><div class="f" style="flex:1"><label>CNPJ</label><input class="in" data-loja="cnpj" value="${h(L.cnpj)}"></div><div class="f" style="flex:1"><label>Telefone</label><input class="in" data-loja="telefone" value="${h(L.telefone)}"></div></div>
-        <div class="f"><label>Endereço</label><input class="in" data-loja="endereco" value="${h(L.endereco)}"></div>
-        <div class="row"><div class="f" style="flex:1"><label>Cidade</label><input class="in" data-loja="cidade" value="${h(L.cidade)}"></div><div class="f" style="flex:1"><label>Instagram</label><input class="in" data-loja="instagram" value="${h(L.instagram)}"></div></div>
-        <div class="f"><label>Horário</label><input class="in" data-loja="horario" value="${h(L.horario)}"></div>
-        <button class="btn pri sm" data-act="salvarLoja">Salvar dados</button>
-      </div>
-      <div>
-        <div class="panel"><h3>Aparência</h3><div class="f"><label>Cor da marca</label><div class="sw">${CORES_MARCA.map(c=>`<button type="button" aria-label="Cor ${c}" class="${c===L.cor?"on":""}" style="background:${c}" data-act="corLoja" data-v="${c}"></button>`).join("")}</div></div></div>
-        <div class="panel"><h3>Listas e opções</h3>
-          ${lista("colecoes","Coleções")}${lista("categorias","Categorias")}${lista("pagamentos","Formas de pagamento")}${lista("despesas","Tipos de despesa")}
-          <div class="f"><label>Estoque mínimo padrão (alerta de “acabando”)</label><div class="pk">${[1,2,3,5].map(n=>`<button type="button" class="${L.minPadrao===n?"on":""}" data-act="minPadrao" data-v="${n}">${n}</button>`).join("")}</div></div>
-        </div>
-      </div>
-    </div>
-    <p class="small muted">Tudo nesta tela é <span class="lv lv1">Nível 1</span>: você mesmo muda, na hora, sem pedir para ninguém.</p>`;
-}
-
-/* ===== PEDIR MUDANÇA (simulação do MINTESS Central) ===== */
-const EXEMPLOS = ["Quero ver as peças paradas há mais de 60 dias","Relatório de comissão por vendedora","Quero controlar trocas e devoluções","Integrar com a loja do Instagram","Mudar a cor do sistema"];
-function vPedir(){
-  const ult = S.pedidos.slice(-4).reverse();
-  $("#view").innerHTML = `
-    <div class="grid2">
-      <div class="panel"><h3>${ic("pedir")} O que você quer mudar no sistema?</h3>
-        <p class="muted" style="margin-bottom:10px">Escreva do seu jeito. A MINTESS entende, classifica e prepara. Ajustes simples ficam prontos em até 2 dias úteis.</p>
-        <textarea class="in" id="pTxt" placeholder="Ex.: quero ver quais vendedoras venderam mais por tamanho"></textarea>
-        <div class="small muted" style="margin:10px 0 6px">Ideias para testar:</div>
-        <div class="pk">${EXEMPLOS.map(e=>`<button type="button" data-act="exemplo" data-v="${h(e)}">${h(e)}</button>`).join("")}</div>
-        <button class="btn pri" style="margin-top:12px" data-act="enviarPedido">Enviar pedido</button>
-        <div id="pRes" style="margin-top:14px"></div>
-      </div>
-      <div>
-        <div class="panel"><h3>Como funciona</h3>
-          <div class="escada">
-            <div style="height:45%;background:#DDF7EE;color:#167A5B"><b>1</b>Você muda</div>
-            <div style="height:62%;background:#E3EEFF;color:#2A5DB0"><b>2</b>Pede aqui</div>
-            <div style="height:80%;background:#FFF3D1;color:#8A6400"><b>3</b>Programador</div>
-            <div style="height:100%;background:#FFE6D3;color:#A34A0E"><b>4</b>Projeto</div>
-          </div>
-          <p class="small muted">Correções são sempre sem custo.</p></div>
-        <div class="panel" id="seusPed"><h3>Seus pedidos</h3>${ult.length?ult.map(p=>`<div style="padding:6px 0;border-bottom:1px solid var(--s3)"><div>${h(p.txt)}</div><span class="lv ${LV[p.n][0]}">${LV[p.n][1]}</span></div>`).join(""):`<div class="empty">Nenhum ainda.</div>`}</div>
-      </div>
-    </div>`;
-}
-function listaPedidos(){ const ult=S.pedidos.slice(-4).reverse(); return `<h3>Seus pedidos</h3>`+(ult.length?ult.map(p=>`<div style="padding:6px 0;border-bottom:1px solid var(--s3)"><div>${h(p.txt)}</div><span class="lv ${LV[p.n][0]}">${LV[p.n][1]}</span></div>`).join(""):`<div class="empty">Nenhum ainda.</div>`); }
-function classificar(t){
-  const s = " "+t.toLowerCase()+" ";
-  const tem = a => a.some(k=>s.includes(k));
-  if (tem(["instagram","site","loja virtual","e-commerce","ecommerce","nota fiscal","nfe","nf-e","mercado livre","shopee","ifood","integra","maquininha","whatsapp autom","marketplace","aplicativo na loja","app store"])) return "4";
-  if (tem(["troca","devolu","etiqueta","campo novo","novo campo","status","pdf","nota de","permiss","tipo de acesso","novo acesso","cadastro de cliente","fidelidade","cashback"])) return "3";
-  if (tem(["cor do sistema","mudar a cor","logo","preço","preco","coleç","coleca","forma de pagamento","pagamento novo","convidar","acesso para","dar acesso","estoque mínimo","estoque minimo","nome da loja","categoria"])) return "1";
-  return "2";
-}
-const ONDE1 = t => /cor|logo|nome da loja/i.test(t)?["empresa","Minha empresa → Aparência"]:/convid|acesso/i.test(t)?["equipe","Equipe e RH → Convidar pessoa"]:/preço|preco/i.test(t)?["estoque","Estoque → toque na peça → Preço"]:["empresa","Minha empresa → Listas e opções"];
-let PED_TIMER = null;
-function enviarPedido(){
-  const t = ($("#pTxt").value||"").trim();
-  if (t.length < 6) { $("#pTxt").focus(); return toast("Escreva o que você quer mudar."); }
-  const n = classificar(t);
-  S.pedidos.push({txt:t, n, data:hoje()}); salvar();
-  const box = $("#pRes"); const etapas = ["Recebido","Claude analisando","Preparando a prévia","Pronto para você ver"];
-  const desenhar = i => `<div class="steps">${etapas.map((e,k)=>`<div class="${k<i?"done":k===i?"now":""}">${e}</div>`).join("")}</div>`;
-  clearTimeout(PED_TIMER);
-  box.innerHTML = desenhar(0) + `<div class="res"><span class="spin"></span> Lendo o seu pedido…</div>`;
-  PED_TIMER = setTimeout(()=>{
-    if (n==="1"){ const [v,onde]=ONDE1(t); box.innerHTML = desenhar(4) + `<div class="res"><span class="lv lv1">Nível 1 · você mesmo faz</span><p style="margin:8px 0">Boa notícia: isso você muda sozinho, agora mesmo, sem custo.</p><p class="small muted">Onde: <b>${h(onde)}</b></p><button class="btn pri sm" style="margin-top:10px" data-act="go" data-v="${v}">Me leve lá →</button></div>`; missao("pedido"); if (S.view==="pedir") { const sp=$("#seusPed"); if (sp) sp.innerHTML = listaPedidos(); } return; }
-    if (n==="4"){ box.innerHTML = desenhar(4) + `<div class="res"><span class="lv lv4">Nível 4 · projeto</span><p style="margin:8px 0">Isso liga o seu sistema a outro serviço. A MINTESS prepara um <b>orçamento</b> e te envia em até 2 dias úteis.</p><p class="small muted">Exemplos: loja do Instagram, nota fiscal, marketplaces, maquininhas.</p></div>`; missao("pedido"); if (S.view==="pedir") { const sp=$("#seusPed"); if (sp) sp.innerHTML = listaPedidos(); } return; }
-    let i = 1; box.innerHTML = desenhar(1) + `<div class="res"><span class="spin"></span> Claude entendeu o pedido e está planejando…</div>`;
-    PED_TIMER = setTimeout(()=>{ box.innerHTML = desenhar(2) + `<div class="res"><span class="spin"></span> Aplicando a mudança numa cópia de teste do seu sistema…</div>`;
-      PED_TIMER = setTimeout(()=>{
-        const lv = n==="3" ? `<span class="lv lv3">Nível 3 · programador</span><p style="margin:8px 0">Esse pedido mexe na estrutura do sistema. Um programador da MINTESS faz e te mostra a prévia em até <b>5 dias úteis</b>, dentro das horas do seu plano.</p>`
-                           : `<span class="lv lv2">Nível 2 · pedido no sistema</span><p style="margin:8px 0">Prévia pronta! No sistema real você abriria um link para conferir antes de ir ao ar. Prazo normal: <b>até 2 dias úteis</b>, dentro das horas do seu plano.</p>`;
-        box.innerHTML = desenhar(4) + `<div class="res">${lv}<div class="small muted">O que vai mudar: <b>${h(t)}</b></div><div class="row" style="margin-top:10px"><span class="chip ok">✓ Você aprova</span><span class="chip">→ entra no ar</span><span class="chip">→ você é avisado</span></div></div>`;
-        missao("pedido"); if (S.view==="pedir") { const sp=$("#seusPed"); if (sp) sp.innerHTML = listaPedidos(); }
-      }, 1500);
-    }, 1400);
-  }, 1100);
-}
-
-/* ===== MISSÕES ===== */
-function missao(k){
-  if (S.missoes[k]) return;
-  S.missoes[k] = true; salvar();
-  const m = MISSOES.find(x=>x.k===k);
-  const feitas = MISSOES.filter(x=>S.missoes[x.k]).length;
-  toast(`✓ Missão: ${m.t} (${feitas}/${MISSOES.length})`, true);
-  renderMissoes();
-  if (feitas===MISSOES.length && !S.fimVisto) setTimeout(final, 1200);
-}
-function renderMissoes(){
-  const feitas = MISSOES.filter(x=>S.missoes[x.k]).length;
-  $("#missN").textContent = feitas;
-  $("#missBtn").style.setProperty("--p", (feitas/MISSOES.length*100)+"%");
-  if ($("#miss").hidden) return;
-  $("#miss").innerHTML = `<div class="mh"><h2>Missões · ${feitas}/${MISSOES.length}</h2><button class="btn sm" style="color:#fff" data-act="missToggle">Fechar</button></div>
-    ${MISSOES.map(m=>`<button class="mi ${S.missoes[m.k]?"done":""}" data-act="missIr" data-v="${m.k}"><span class="ck">${S.missoes[m.k]?"✓":""}</span><span><b>${m.t}</b><span class="small muted">${m.dica}</span><br><span class="lv ${LV[m.n][0]}">${LV[m.n][1]}</span></span></button>`).join("")}
-    <div style="padding:10px 14px"><button class="btn sec sm full" data-act="final">Ver o resumo e falar com a MINTESS</button></div>`;
-}
-function final(){
-  S.fimVisto = true; salvar();
-  const feitas = MISSOES.filter(x=>S.missoes[x.k]).length;
-  const msg = `Olá! Testei a demonstração da MINTESS como "${S.loja.nome}" (${feitas}/${MISSOES.length} missões) e quero conversar sobre um sistema para a minha loja.`;
-  const link = CONTATO.whatsapp ? `https://wa.me/${CONTATO.whatsapp}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  modal(feitas===MISSOES.length?"Você completou a demonstração 🎉":"Resumo da demonstração", `
-    <p style="font-size:15px;margin-bottom:6px">Em poucos minutos, <b>${h(S.loja.nome)}</b> vendeu, controlou estoque por cor e tamanho, cuidou da equipe e do financeiro.</p>
-    <p class="muted">E você viu os quatro jeitos de mudar o sistema:</p>
-    <div class="escada">
-      <div style="height:45%;background:#DDF7EE;color:#167A5B"><b>1</b>Você muda</div>
-      <div style="height:62%;background:#E3EEFF;color:#2A5DB0"><b>2</b>Pede no sistema</div>
-      <div style="height:80%;background:#FFF3D1;color:#8A6400"><b>3</b>Programador</div>
-      <div style="height:100%;background:#FFE6D3;color:#A34A0E"><b>4</b>Projeto</div>
-    </div>
-    <p class="muted">Agora imagine isso com as <b>suas</b> peças, a <b>sua</b> equipe e o jeito que a <b>sua</b> loja funciona.</p>`,
-    `<button class="btn sec" data-act="fechar">Continuar testando</button><a class="btn ok" href="${h(link)}" target="_blank" rel="noopener">Quero o meu sistema →</a>`);
-}
-
-/* ===== modal ===== */
-function modal(title, body, foot, o={}){
-  const m = $("#modal"); m.className = "modal"+(o.wide?" wide":"");
-  m.innerHTML = `<div class="mh"><h2>${title}</h2><button class="btn ghost sm" data-act="fechar">Fechar</button></div><div class="mb">${body}</div>${foot?`<div class="mf">${foot}</div>`:""}`;
-  $("#mback").hidden = false; document.body.style.overflow = "hidden";
-}
-function fechar(){ $("#mback").hidden = true; document.body.style.overflow = ""; }
-$("#mback").addEventListener("click", e=>{ if (e.target.id==="mback") fechar(); });
-document.addEventListener("keydown", e=>{ if (e.key==="Escape" && !$("#mback").hidden) fechar(); });
-
-/* botões de opção (pick) */
-document.addEventListener("click", e=>{
-  const b = e.target.closest("[data-pickv]"); if (!b) return;
-  const w = b.closest("[data-pk]"); const inp = document.getElementById(w.dataset.pk);
-  if (inp) inp.value = b.dataset.pickv;
-  w.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+/* ---------- type buttons (new + edit) ---------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".type");if(!b) return;
+  const pre=b.dataset.pre, v=b.dataset.type;
+  const wrap=b.parentElement;
+  const already=b.getAttribute("aria-pressed")==="true";
+  wrap.querySelectorAll(".type").forEach(x=>x.setAttribute("aria-pressed","false"));
+  const val=already?"":v;
+  if(val) b.setAttribute("aria-pressed","true");
+  if(pre==="n"){nType=val}
+  else {wrap.dataset.value=val}
 });
 
-/* ===== ações ===== */
-const ACT = {
-  eCor: el=>{ S.loja.cor = el.dataset.v; aplicarCor(); document.querySelectorAll("#eCor button").forEach(b=>b.classList.toggle("on", b===el)); },
-  comecar: ()=>{ const n = $("#eNome").value.trim(); if (n) S.loja.nome = n; S.loja.instagram = "@"+S.loja.nome.toLowerCase().replace(/[^a-z0-9]+/gi,""); S.iniciado = true; salvar(); abrirApp(); setTimeout(()=>{ $("#miss").hidden=false; renderMissoes(); }, 400); },
-  recomecar: ()=>{ try{ localStorage.removeItem(KEY); }catch(e){} CART=[]; S = semente(); fechar(); aplicarCor(); mostrarEntrada(); },
-  go: el=>{ fechar(); S.view = el.dataset.v; S.cat = "Todas"; render(); scrollTo(0,0); },
-  semAcesso: el=>toast(`🔒 ${PAPEIS[S.papel].nome} não tem acesso a "${TELAS.find(t=>t.k===el.dataset.v).t}"`),
-  cat: el=>{ S.cat = el.dataset.v; render(); },
-  addProd: el=>escolherVariacao(el.dataset.id),
-  verProd: el=>verProd(el.dataset.id),
-  vCor: el=>{ window.__v.cor = el.dataset.v; document.querySelectorAll("#vCor button").forEach(b=>b.classList.toggle("on", b===el)); pintarTams(pid($("#modal [data-act=addCart]").dataset.id)); },
-  vTam: el=>{ window.__v.tam = el.dataset.v; document.querySelectorAll("#vTam button").forEach(b=>b.classList.toggle("on", b===el)); },
-  vQtd: el=>{ window.__v.qtd = Number(el.dataset.v); document.querySelectorAll("#vQtd button").forEach(b=>b.classList.toggle("on", b===el)); },
-  addCart: el=>{ const p = pid(el.dataset.id), v = window.__v; if (!v.tam) return toast("Sem estoque nessa cor."); const disp = p.estoque[v.cor+"|"+v.tam]||0; const ja = CART.filter(i=>i.pid===p.id&&i.cor===v.cor&&i.tam===v.tam).reduce((s,i)=>s+i.qtd,0); if (v.qtd+ja>disp) return toast(`Só tem ${disp} peça(s) ${v.cor} ${v.tam}.`); CART.push({pid:p.id, nome:p.nome, cor:v.cor, tam:v.tam, qtd:v.qtd, preco:p.preco}); fechar(); render(); },
-  cartDel: el=>{ CART.splice(Number(el.dataset.v),1); render(); },
-  finalizar: ()=>{ if (!CART.length) return; const tot = CART.reduce((s,i)=>s+i.preco*i.qtd,0);
-    CART.forEach(i=>{ const p=pid(i.pid); p.estoque[i.cor+"|"+i.tam] = Math.max(0,(p.estoque[i.cor+"|"+i.tam]||0)-i.qtd); p.ultimaVenda = hoje(); });
-    S.vendas.push({id:uid(), data:hoje(), itens:CART.map(i=>({pid:i.pid,nome:i.nome,cor:i.cor,tam:i.tam,qtd:i.qtd,preco:i.preco})), total:tot, pag:$("#pag").value, vendedor:$("#vend").value});
-    const primeiro = CART[0]; CART = []; render(); toast(`Venda de ${brl(tot)} registrada ✓`); missao("venda");
-    setTimeout(()=>{ if (pode("telas").includes("estoque")) toast(`Veja: a grade de ${primeiro.nome} já baixou 1 peça ${primeiro.cor} ${primeiro.tam}.`); }, 2700); },
-  gMais: el=>ajustarGrade(el.dataset.v, +1),
-  gMenos: el=>ajustarGrade(el.dataset.v, -1),
-  salvarPreco: ()=>{ const p=pid(window.__pid), v=num($("#pPreco").value); if (v<=0) return toast("Preço inválido."); const mudou = Math.abs(v-p.preco)>0.001; p.preco=v; fechar(); render(); toast("Preço salvo ✓"); if (mudou) missao("preco"); },
-  novaPeca: ()=>novaPeca(),
-  salvarPeca: ()=>{ const nome=$("#nNome").value.trim(), preco=num($("#nPreco").value); if (!nome) return toast("Dê um nome à peça."); if (preco<=0) return toast("Informe o preço.");
-    const cores=$("#nCores").value.split(",").map(x=>x.trim()).filter(Boolean).slice(0,4).map(n=>({nome:n,hex:hexDe(n)})); if (!cores.length) cores.push({nome:"Única",hex:"#B5A99C"});
-    const tams=tamsDe($("#nTam").value), est={}; cores.forEach(c=>tams.forEach(t=>est[c.nome+"|"+t]=0));
-    S.produtos.unshift({id:uid(), nome, cat:$("#nCat").value, colecao:$("#nCol").value, preco, custo:num($("#nCusto").value)||Math.round(preco*0.4), cores, tams, estoque:est, min:S.loja.minPadrao, ultimaVenda:hoje()});
-    fechar(); render(); toast("Peça cadastrada. Toque nela para lançar o estoque na grade."); },
-  importar: ()=>importar(),
-  impOk: ()=>{ const linhas=$("#impTxt").value.split("\n").map(l=>l.split(/;|\t/).map(x=>x.trim())).filter(c=>c[0]); let n=0;
-    linhas.forEach(c=>{ const cat = S.listas.categorias.find(x=>x.toLowerCase()===(c[1]||"").toLowerCase()) || S.listas.categorias[0]; const tams = cat==="Acessórios"?["U"]:cat==="Sapatos"?["38","39","40","41","42","43"]:["P","M","G","GG"]; const q=Math.max(0,Math.round(num(c[3]))); const est={}; tams.forEach((t,i)=>est["Única|"+t]=Math.floor(q/tams.length)+(i<q%tams.length?1:0));
-      S.produtos.unshift({id:uid(), nome:c[0], cat, colecao:S.listas.colecoes[0], preco:num(c[2])||99.9, custo:Math.round((num(c[2])||99.9)*0.4), cores:[{nome:"Única",hex:"#B5A99C"}], tams, estoque:est, min:S.loja.minPadrao, ultimaVenda:hoje()}); n++; });
-    fechar(); S.cat="Todas"; render(); toast(`${n} peça(s) importada(s) ✓`); },
-  novaDespesa: ()=>novaDespesa(),
-  salvarDespesa: ()=>{ const d=$("#dDesc").value.trim(), v=num($("#dValor").value); if (!d) return toast("Descreva a despesa."); if (v<=0) return toast("Informe o valor.");
-    S.despesas.push({id:uid(), desc:d, cat:$("#dCat").value, valor:v, venc:$("#dVenc").value||hoje(), pago:$("#dPago").value==="sim"}); fechar(); render(); toast("Despesa lançada ✓"); missao("despesa"); },
-  pagar: el=>{ const d=S.despesas.find(x=>x.id===el.dataset.id); d.pago=true; render(); toast("Conta paga ✓"); },
-  convidar: ()=>convidar(),
-  convidarOk: ()=>{ const n=$("#cNome").value.trim(), e=$("#cEmail").value.trim(); if (!n) return toast("Informe o nome."); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast("Confira o e-mail.");
-    S.equipe.push({id:uid(), nome:n, cargo:$("#cCargo").value, papel:$("#cPapel").value, salario:num($("#cSal").value), comissao:num($("#cCom").value), admissao:hoje(), email:e, status:"convidado"});
-    fechar(); render(); missao("convite");
-    modal("Convite pronto ✓", `<p><b>${h(n)}</b> foi convidada como <span class="chip acc">${PAPEIS[$("#cPapel")?.value||"vendedor"]?.nome||"Vendedor"}</span>.</p><p class="muted" style="margin-top:8px">No sistema real, ela recebe um link por WhatsApp ou e-mail, cria a senha e já entra vendo só o que o acesso dela permite.</p>`, `<button class="btn pri" data-act="fechar">Ótimo</button>`); },
-  editPessoa: el=>editPessoa(el.dataset.id),
-  salvarPessoa: ()=>{ const e=S.equipe.find(x=>x.id===window.__eid); e.papel=$("#ePapel").value; e.salario=num($("#eSal").value); e.comissao=num($("#eCom").value); e.status=$("#eSt").value; fechar(); render(); toast("Dados salvos ✓"); },
-  salvarLoja: ()=>{ document.querySelectorAll("[data-loja]").forEach(i=>{ S.loja[i.dataset.loja] = i.value.trim() || S.loja[i.dataset.loja]; }); render(); toast("Dados da empresa salvos ✓"); },
-  corLoja: el=>{ S.loja.cor = el.dataset.v; render(); toast("Cor da marca aplicada ✓"); },
-  listaAdd: el=>{ const k=el.dataset.k; modal(`Adicionar em ${h(el.dataset.t)}`, `<div class="f"><label>Novo item</label><input class="in" id="liNovo" placeholder="Digite e salve"></div>`, `<button class="btn sec" data-act="fechar">Cancelar</button><button class="btn pri" data-act="listaOk" data-k="${k}">Adicionar</button>`); setTimeout(()=>$("#liNovo").focus(),50); },
-  listaOk: el=>{ const v=$("#liNovo").value.trim(); if (!v) return toast("Digite o item."); const k=el.dataset.k; if (!S.listas[k].includes(v)) S.listas[k].push(v); fechar(); render(); toast("Adicionado ✓"); },
-  listaDel: el=>{ const k=el.dataset.k, i=Number(el.dataset.i); if (S.listas[k].length<=1) return toast("Deixe pelo menos um item."); S.listas[k].splice(i,1); render(); },
-  minPadrao: el=>{ const n=Number(el.dataset.v); S.loja.minPadrao=n; S.produtos.forEach(p=>p.min=n); render(); toast("Alerta de estoque ajustado ✓"); },
-  exemplo: el=>{ $("#pTxt").value = el.dataset.v; $("#pTxt").focus(); },
-  enviarPedido: ()=>enviarPedido(),
-  missToggle: ()=>{ $("#miss").hidden = !$("#miss").hidden; renderMissoes(); },
-  missIr: el=>{ const m=MISSOES.find(x=>x.k===el.dataset.v); if (m.k==="papel"){ $("#papelSel").focus(); $("#papelSel").closest(".role").classList.add("glow"); setTimeout(()=>$(".role")?.classList.remove("glow"),4500); toast(m.dica); return; }
-    if (!PAPEIS[S.papel].telas.includes(m.onde)){ S.papel="dono"; toast("Voltando para o acesso de Dono."); } S.view=m.onde; render(); toast(m.dica); if (innerWidth<860) $("#miss").hidden=true; },
-  final: ()=>final(),
-  fechar: ()=>fechar()
+/* ---------- save new ---------- */
+function say(el,msg,isErr){el.textContent=msg;el.classList.toggle("err",!!isErr);clearTimeout(el._t);el._t=setTimeout(()=>{el.textContent=""},4000)}
+$("newForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const date=readDate("n"),time=readTime("n"),title=$("nTitle").value.trim();
+  const place="";
+  if(!date){say($("newStatus"),"Escolha a data.",true);return}
+  if(!col){say($("newStatus"),"A agenda ainda está conectando. Tente em instantes.",true);return}
+  $("saveBtn").disabled=true;
+  try{
+    await col.add({date,time,title,type:nType,place,status:"ativo",created:new Date().toISOString()});
+    say($("newStatus"),"Salvo: "+short(date)+" "+WD[fromIso(date).getDay()]+(time?" · "+fmt(time):"")+(title?" · "+title:"")+(place?" · "+place:""));
+    resetNew.keep=date;resetNew();
+  }catch(err){say($("newStatus"),"Não consegui salvar. Tente de novo.",true)}
+  $("saveBtn").disabled=false;
+});
+
+/* ---------- rendering ---------- */
+const rowsAll=()=>docs.map(d=>({id:d.id,...d.data()})).filter(r=>r.date)
+  .sort((a,b)=>(a.date+(a.time||"99")).localeCompare(b.date+(b.time||"99")));
+const isCanceled=r=>r.status==="cancelado";
+const isDone=r=>r.status==="concluido";
+
+function itemHTML(r,ctx){
+  const t=iso(today0());const now=new Date();const nowHM=pad(now.getHours())+":"+pad(now.getMinutes());
+  const past=r.date<t||(r.date===t&&r.time&&r.time<nowHM);
+  const cls="item"+(r.type?" k-"+r.type:"")+(past?" past":"")+(isCanceled(r)?" canceled":"")+(isDone(r)?" done":"")+(ctx==="list"?" hasdone":"");
+  let meta="";
+  if(r.type) meta+='<span class="kind">'+esc(TYPE_LABEL[r.type]||r.type)+'</span>';
+  if(r.place) meta+='<span>'+esc(r.place)+'</span>';
+  if(isCanceled(r)) meta+='<span class="cx">Cancelado</span>';
+  if(isDone(r)) meta+='<span class="dx">✓ Concluído</span>';
+  let h='<div class="iw"><button class="'+cls+'" data-id="'+esc(r.id)+'" data-ctx="'+ctx+'" aria-expanded="'+(openId===r.id)+'"><span class="t">'+esc(r.time?fmt(r.time):"—")+'</span><span class="body"><span class="n">'+esc(r.title||(r.type?TYPE_LABEL[r.type]:"")||"(sem assunto)")+'</span>'+(meta?'<span class="meta">'+meta+'</span>':"")+'</span></button>'+(ctx==="list"?'<button class="donebtn" data-act="done" data-id="'+esc(r.id)+'" aria-label="Marcar como concluído">✓</button>':"");
+  if(openId===r.id){
+    if(isDone(r)){
+      h+='<div class="edit"><div class="actions"><button class="btn" data-act="restore" data-id="'+esc(r.id)+'">Desfazer conclusão</button><button class="btn ghost" data-act="close">Fechar</button></div></div>';
+    } else if(isCanceled(r)){
+      h+='<div class="edit"><div class="actions"><button class="btn" data-act="restore" data-id="'+esc(r.id)+'">Reativar compromisso</button><button class="btn ghost" data-act="close">Fechar</button></div></div>';
+    } else {
+      h+='<div class="edit"><div class="row2">'+
+        '<label class="field" for="eDate">Data<input type="date" id="eDate" data-pre="e" class="dsel" value="'+esc(r.date)+'"><span class="wd" id="eWd">→ '+WD[fromIso(r.date).getDay()]+', '+short(r.date)+'</span></label>'+
+        '<div class="field"><span>Hora</span><div class="timepair">'+timeHTML("e",r.time||"")+'</div></div></div>'+
+        '<div class="field"><span>Tipo</span><div class="types" id="eTypes" data-value="'+esc(r.type||"")+'">'+typesHTML("e",r.type||"")+'</div></div>'+
+        '<label class="field" for="eTitle">Assunto &amp; Pessoa<input id="eTitle" value="'+esc(r.title)+'"></label>'+
+        '<div class="actions"><button class="btn" data-act="save" data-id="'+esc(r.id)+'">Salvar</button>'+
+        '<button class="btn ghost" data-act="close">Fechar</button>'+
+        '<button class="btn danger wide'+(armedId===r.id?" armed":"")+'" data-act="del" data-id="'+esc(r.id)+'">'+(armedId===r.id?"Toque de novo para cancelar":"Cancelar compromisso")+'</button></div></div>';
+    }
+  }
+  return h+'</div>';
+}
+
+function daysHTML(rows,ctx){
+  const t=iso(today0());const tm=today0();tm.setDate(tm.getDate()+1);const tom=iso(tm);
+  const byDay={};rows.forEach(r=>(byDay[r.date]=byDay[r.date]||[]).push(r));
+  let html="";
+  for(const day of Object.keys(byDay)){
+    const d=fromIso(day);const tag=day===t?"Hoje":day===tom?"Amanhã":"";
+    html+='<section class="day'+(day===t?" is-today":"")+'" id="'+ctx+'-'+day+'"><div class="dayhead"><span class="d">'+short(day)+(d.getFullYear()!==today0().getFullYear()?"/"+String(d.getFullYear()).slice(2):"")+'</span><span class="w">'+WD[d.getDay()]+'</span>'+(tag?'<span class="tag">'+tag+'</span>':"")+'</div><div class="list">';
+    html+=byDay[day].map(r=>itemHTML(r,ctx)).join("");
+    html+='</div></section>';
+  }
+  return html;
+}
+
+const MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+function renderMini(rows){
+  const has=new Set(rows.map(r=>r.date));const t=iso(today0());
+  let html="";const base=today0();
+  for(let k=0;k<2;k++){
+    const first=new Date(base.getFullYear(),base.getMonth()+k,1);
+    const y=first.getFullYear(),mo=first.getMonth();const days=new Date(y,mo+1,0).getDate();
+    html+='<div class="cal"><h3>'+MESN[mo]+(y!==base.getFullYear()?" "+y:"")+'</h3><div class="g">';
+    for(const w of ["D","S","T","Q","Q","S","S"]) html+='<span class="wh">'+w+'</span>';
+    for(let i=0;i<first.getDay();i++) html+='<span></span>';
+    for(let d=1;d<=days;d++){
+      const ds=y+"-"+pad(mo+1)+"-"+pad(d);
+      const cls="c"+(ds<t?" past":"")+(ds===t?" today":"")+(has.has(ds)?" has":"");
+      html+=has.has(ds)?'<button class="'+cls+'" data-go="'+ds+'" aria-label="'+d+' de '+MESN[mo]+', tem compromisso">'+d+'</button>':'<span class="'+cls+'">'+d+'</span>';
+    }
+    html+='</div></div>';
+  }
+  $("mini").innerHTML=html;
+}
+$("mini").addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(!b) return;const el=$("list-"+b.dataset.go);if(el) el.scrollIntoView({behavior:"smooth",block:"start"})});
+function renderList(){
+  const t=iso(today0());
+  const rows=rowsAll().filter(r=>!isCanceled(r)&&!isDone(r)&&r.date>=t);
+  renderMini(rows);
+  const now=new Date();const nowHM=pad(now.getHours())+":"+pad(now.getMinutes());
+  const nx=rows.find(r=>r.date>t||!r.time||r.time>=nowHM);
+  $("nextUp").textContent=nx?"Próximo: "+WD[fromIso(nx.date).getDay()]+" "+short(nx.date)+(nx.time?" · "+fmt(nx.time):"")+" · "+(nx.title||(nx.type?TYPE_LABEL[nx.type]:"compromisso")):"Nenhum compromisso pela frente.";
+  $("days").innerHTML=rows.length?daysHTML(rows,"list")
+    :'<div class="empty">Nenhum compromisso pela frente. Toque em <b>+ Novo compromisso</b> para criar o primeiro.</div>';
+  const wk=viewMode==="week";$("week").hidden=!wk;$("listwrap").hidden=wk;if(wk) renderWeek();
+}
+/* ---------- visão semana ---------- */
+let viewMode=(()=>{try{return localStorage.getItem("agenda-view")||"list"}catch(e){return "list"}})();
+let weekOff=0;
+const WD3=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
+function syncToggle(){document.querySelectorAll(".vchip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.view===viewMode))}
+function renderWeek(){
+  const rows=rowsAll().filter(r=>!isCanceled(r));
+  const t=iso(today0());const base=today0();base.setDate(base.getDate()+weekOff*7);
+  const end=new Date(base);end.setDate(base.getDate()+6);
+  const lab=base.getDate()+" "+MES[base.getMonth()]+" – "+end.getDate()+" "+MES[end.getMonth()];
+  let h='<div class="weeknav"><button class="vnav" data-wk="-1" aria-label="Semana anterior">‹</button><span class="wlabel">'+lab+'</span><button class="vnav" data-wk="1" aria-label="Próxima semana">›</button>'+(weekOff?'<button class="vnav today" data-wk="0">Hoje</button>':'')+'</div><div class="wgrid">';
+  for(let i=0;i<7;i++){
+    const d=new Date(base);d.setDate(base.getDate()+i);const ds=iso(d);
+    const items=rows.filter(r=>r.date===ds);
+    h+='<div class="wcol'+(ds===t?' is-today':'')+'"><div class="wh"><span class="wd3">'+WD3[d.getDay()]+'</span><span class="wn">'+d.getDate()+'</span></div>';
+    h+=items.length?items.map(r=>'<button class="wpill'+(r.type?' k-'+r.type:'')+(isDone(r)?' done':'')+'" data-id="'+esc(r.id)+'" data-date="'+ds+'"><span class="wt">'+esc(r.time?fmt(r.time).replace(' AM','a').replace(' PM','p'):'—')+'</span><span class="wx">'+esc(r.title||TYPE_LABEL[r.type]||'(sem assunto)')+'</span></button>').join(''):'<div class="wempty">—</div>';
+    h+='</div>';
+  }
+  $("week").innerHTML=h+'</div>';
+}
+$("viewToggle").addEventListener("click",e=>{const b=e.target.closest(".vchip");if(!b) return;viewMode=b.dataset.view;try{localStorage.setItem("agenda-view",viewMode)}catch(err){}syncToggle();openId=null;renderList()});
+$("week").addEventListener("click",e=>{
+  const n=e.target.closest(".vnav");if(n){const k=+n.dataset.wk;weekOff=k===0?0:weekOff+k;renderWeek();return}
+  const p=e.target.closest(".wpill");if(!p) return;
+  if(p.dataset.date<iso(today0())){show("hist");return}
+  viewMode="list";syncToggle();openId=p.dataset.id;renderList();
+  setTimeout(()=>{const el=$("list-"+p.dataset.date);if(el) el.scrollIntoView({behavior:"smooth",block:"start"})},50);
+});
+syncToggle();
+function renderHist(){
+  let rows=rowsAll();
+  const total=rows.length, canc=rows.filter(isCanceled).length, done=rows.filter(isDone).length;
+  if(histFilter==="canceled") rows=rows.filter(isCanceled);
+  if(histFilter==="done") rows=rows.filter(isDone);
+  $("histCount").textContent=total+" no total · "+done+" concluído"+(done===1?"":"s")+" · "+canc+" cancelado"+(canc===1?"":"s");
+  $("hist").innerHTML=rows.length?daysHTML(rows,"hist")
+    :'<div class="empty">'+(histFilter==="canceled"?"Nenhum compromisso cancelado até agora.":histFilter==="done"?"Nenhum compromisso concluído até agora.":"Ainda não há compromissos.")+'</div>';
+}
+function renderAll(){if(!col) return; if(current==="list") renderList(); if(current==="hist") renderHist()}
+
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
+  histFilter=c.dataset.filter;document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c));openId=null;renderHist();
+}));
+
+/* ---------- list actions ---------- */
+async function onListClick(e){
+  const b=e.target.closest("button");if(!b||b.classList.contains("type")) return;
+  const st=current==="hist"?$("histStatus"):$("listStatus");
+  if(b.classList.contains("item")){openId=openId===b.dataset.id?null:b.dataset.id;armedId=null;renderAll();return}
+  const act=b.dataset.act,id=b.dataset.id;
+  if(act==="close"){openId=null;armedId=null;renderAll();return}
+  try{
+    if(act==="save"){
+      const date=readDate("e"),time=readTime("e"),title=$("eTitle").value.trim(),type=$("eTypes").dataset.value||"";
+      if(!date){say(st,"Escolha a data.",true);return}
+      await col.doc(id).update({date,time,title,type});openId=null;say(st,"Alterado: "+short(date)+(time?" "+fmt(time):"")+(title?" "+title:""));renderAll();
+    }
+    if(act==="del"){
+      if(armedId!==id){armedId=id;renderAll();return}
+      await col.doc(id).update({status:"cancelado",canceledAt:new Date().toISOString()});openId=null;armedId=null;say(st,"Compromisso cancelado. Ele fica guardado no Histórico.");renderAll();
+    }
+    if(act==="restore"){
+      await col.doc(id).update({status:"ativo"});openId=null;say(st,"Compromisso reativado.");renderAll();
+    }
+    if(act==="done"){
+      if(openId===id) openId=null;
+      await col.doc(id).update({status:"concluido"});armedId=null;
+      st.className="status";st.innerHTML='Concluído ✓ Ficou guardado no Histórico. <button class="undo" data-act="restore" data-id="'+esc(id)+'">Desfazer</button>';clearTimeout(st._t);st._t=setTimeout(()=>{st.textContent=""},8000);renderAll();
+    }
+  }catch(err){say(st,"Não consegui concluir. Tente de novo.",true)}
+}
+$("days").addEventListener("click",onListClick);
+$("listStatus").addEventListener("click",e=>{if(e.target.closest(".undo")) onListClick(e)});
+$("hist").addEventListener("click",onListClick);
+
+setInterval(()=>{if(!openId) renderAll()},60000);
+
+/* ---------- nuvem (Supabase) ---------- */
+const SB_URL="https://agdqlnaedojcgivwluty.supabase.co";
+const SB_KEY="sb_publishable_PKGxxrfpduzI7xY1_DWQyQ_cnJA9isP";
+const LOCAL_KEY="agenda-tae-v1";
+let sb=null,user=null,rowsCache={};
+try{sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"agenda-tae-auth"}})}catch(e){}
+const fromRow=r=>({date:r.date,time:r.time||"",title:r.title||"",type:r.type||"",place:r.place||"",status:r.status||"ativo",created:r.created_at,canceledAt:r.canceled_at});
+async function reload(){
+  if(!user) return;
+  let {data,error}=await sb.from("agenda").select("*").order("date");
+  if(error&&/jwt|token|401|auth/i.test((error.message||"")+(error.code||""))){
+    await sb.auth.refreshSession().catch(()=>{});
+    ({data,error}=await sb.from("agenda").select("*").order("date"));
+  }
+  if(error){say($("listStatus"),"Não consegui carregar. Verifique a internet e recarregue.",true);return}
+  rowsCache={};(data||[]).forEach(r=>rowsCache[r.id]=fromRow(r));
+  docs=Object.entries(rowsCache).map(([id,v])=>({id,data:()=>v}));
+  if(!openId) renderAll();
+  checkLocalImport();
+}
+col={
+  add:async d=>{const {data,error}=await sb.from("agenda").insert({date:d.date,time:d.time||"",title:d.title||"",type:d.type||"",place:d.place||"",status:d.status||"ativo"}).select().single();if(error) throw error;await reload();return {id:data.id}},
+  doc:id=>({update:async p=>{const q={};for(const [k,v] of Object.entries(p)) q[k==="canceledAt"?"canceled_at":k]=v;const {error}=await sb.from("agenda").update(q).eq("id",id);if(error) throw error;await reload()}})
 };
-document.addEventListener("click", e=>{ const el=e.target.closest("[data-act]"); if (!el) return; if (el.tagName==="A" && !el.href.startsWith("http")) e.preventDefault(); const f=ACT[el.dataset.act]; if (f){ if (el.tagName==="A") e.preventDefault(); f(el); } });
-$("#papelSel").addEventListener("change", e=>{ S.papel = e.target.value; CART=[]; render(); toast(`Agora você vê o sistema como ${PAPEIS[S.papel].nome}`); if (S.papel==="vendedor") missao("papel"); });
-$("#eNome").addEventListener("keydown", e=>{ if (e.key==="Enter") ACT.comecar(); });
-iniciar();
+
+/* ---------- login ---------- */
+let manualOut=false;
+function showLogin(msg){try{const em=localStorage.getItem("agenda-tae-email");if(em&&!$("lgEmail").value) $("lgEmail").value=em}catch(e){}user=null;$("app").hidden=true;$("lock").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg)}
+function showApp(u){user=u;$("login").hidden=true;if(fidOn()&&!unlocked){showLock();return}$("lock").hidden=true;$("app").hidden=false;fidLabel();$("who").textContent=u.email||"";show("list");reload()}
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const email=$("lgEmail").value.trim(),password=$("lgPass").value;
+  $("lgBtn").disabled=true;
+  try{localStorage.setItem("agenda-tae-email",email)}catch(e){}
+  const {data,error}=await sb.auth.signInWithPassword({email,password});manualOut=false;
+  $("lgBtn").disabled=false;
+  if(error){say($("lgStatus"),/invalid/i.test(error.message)?"E-mail ou senha incorretos. Primeira vez? Toque em Criar conta.":"Não consegui entrar: "+error.message,true);return}
+  unlocked=true;showApp(data.user);
+});
+$("lgCreate").addEventListener("click",async()=>{
+  const email=$("lgEmail").value.trim(),password=$("lgPass").value;
+  if(!email||password.length<6){say($("lgStatus"),"Preencha o e-mail e uma senha com pelo menos 6 caracteres.",true);return}
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error){say($("lgStatus"),"Não consegui criar a conta: "+error.message,true);return}
+  if(data.session) showApp(data.user); else say($("lgStatus"),"Conta criada. Confira seu e-mail para confirmar e depois toque em Entrar.");
+});
+$("logoutBtn").addEventListener("click",async()=>{manualOut=true;await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Você saiu. Entre de novo quando quiser.")});
+
+/* ---------- trazer compromissos salvos neste aparelho ---------- */
+function localPending(){
+  let loc=null;try{loc=JSON.parse(localStorage.getItem(LOCAL_KEY))}catch(e){}
+  if(!loc) return [];
+  const key=r=>r.date+"|"+(r.time||"")+"|"+(r.title||"").trim().toLowerCase();
+  const have=new Set(Object.values(rowsCache).map(key));
+  return Object.values(loc).filter(r=>r&&r.date&&!have.has(key(r)));
+}
+function checkLocalImport(){
+  let done=false;try{done=localStorage.getItem(LOCAL_KEY+"-enviado")==="1"}catch(e){}
+  const pend=done?[]:localPending();
+  $("importBar").hidden=!pend.length;
+  if(pend.length) $("importTxt").textContent="Encontrei "+pend.length+" compromisso"+(pend.length>1?"s":"")+" salvo"+(pend.length>1?"s":"")+" só neste aparelho. Enviar para a nuvem?";
+}
+$("impYes").addEventListener("click",async()=>{
+  const pend=localPending();$("impYes").disabled=true;
+  const rows=pend.map(r=>({date:r.date,time:r.time||"",title:r.title||"",type:r.type||"",place:r.place||"",status:r.status||"ativo"}));
+  const {error}=rows.length?await sb.from("agenda").insert(rows):{error:null};
+  $("impYes").disabled=false;
+  if(error){say($("listStatus"),"Não consegui enviar. Tente de novo.",true);return}
+  try{localStorage.setItem(LOCAL_KEY+"-enviado","1")}catch(e){}
+  say($("listStatus"),rows.length+" compromisso(s) enviados para a nuvem.");reload();
+});
+$("impNo").addEventListener("click",()=>{try{localStorage.setItem(LOCAL_KEY+"-enviado","1")}catch(e){}$("importBar").hidden=true});
+
+/* ---------- backup ---------- */
+$("bkCopy").addEventListener("click",async()=>{
+  const txt=JSON.stringify(rowsCache);
+  try{await navigator.clipboard.writeText(txt);say($("bkStatus"),"Backup copiado.")}catch(e){say($("bkStatus"),"Não consegui copiar neste aparelho.",true)}
+});
+
+/* ---------- Face ID (trava ao abrir) ---------- */
+const FID_KEY="agenda-tae-faceid";
+const LOCK_AFTER_MS=5*60*1000;
+let unlocked=false,hiddenAt=0;
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+function fidGet(){try{return localStorage.getItem(FID_KEY)}catch(e){return null}}
+function fidOn(){return !!fidGet()}
+function fidLabel(){$("fidBtn").textContent=fidOn()?"Desativar Face ID":"Ativar Face ID"}
+function showLock(){$("app").hidden=true;$("login").hidden=true;$("lock").hidden=false;$("lockStatus").textContent="";tryUnlock(true)}
+async function tryUnlock(auto){
+  const id=fidGet();if(!id){unlocked=true;$("lock").hidden=true;if(user) showApp(user);return}
+  try{
+    await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:"public-key",id:unb64(id),transports:["internal"]}],userVerification:"required",timeout:60000}});
+    unlocked=true;$("lock").hidden=true;if(user) showApp(user);
+  }catch(e){if(!auto) say($("lockStatus"),"Não reconheci. Toque para tentar de novo ou entre com senha.",true)}
+}
+$("lockBtn").addEventListener("click",()=>tryUnlock(false));
+$("lockPass").addEventListener("click",async()=>{manualOut=true;await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Entre com e-mail e senha.")});
+$("fidBtn").addEventListener("click",async()=>{
+  if(fidOn()){try{localStorage.removeItem(FID_KEY)}catch(e){}fidLabel();say($("bkStatus"),"Face ID desativado neste aparelho.");return}
+  if(!window.PublicKeyCredential){say($("bkStatus"),"Este aparelho não suporta Face ID no navegador.",true);return}
+  try{
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:rnd(32),rp:{name:"Agenda"},
+      user:{id:rnd(16),name:(user&&user.email)||"agenda",displayName:"Agenda · Tae"},
+      pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"discouraged"},
+      timeout:60000,attestation:"none"}});
+    localStorage.setItem(FID_KEY,b64(cred.rawId));unlocked=true;fidLabel();
+    say($("bkStatus"),"Face ID ativado. Da próxima vez que abrir, é só olhar para o celular.");
+  }catch(e){
+    const m=e&&e.name==="NotAllowedError"?"Cancelado ou bloqueado. Confira se as Senhas/Chaves do iCloud estão ativadas e tente de novo."
+      :e&&e.name==="NotSupportedError"?"Este aparelho não aceitou o Face ID no navegador."
+      :"Não consegui ativar o Face ID ("+((e&&e.name)||"erro")+").";
+    say($("bkStatus"),m,true);
+  }
+});
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  if(fidOn()&&user&&hiddenAt&&Date.now()-hiddenAt>LOCK_AFTER_MS){unlocked=false;showLock()}
+});
+
+/* ---------- atualizar sozinho ---------- */
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&unlocked||!document.hidden&&!fidOn()) reload()});
+setInterval(()=>{if(!document.hidden) reload()},60000);
+
+(async()=>{
+  if(!sb){showLogin("Sem conexão com o servidor. Verifique a internet e recarregue.");return}
+  try{if(navigator.storage&&navigator.storage.persist) navigator.storage.persist()}catch(e){}
+  sb.auth.onAuthStateChange((ev,ses)=>{
+    if(ev!=="SIGNED_OUT"||manualOut||$("app").hidden) return;
+    // iPhone às vezes "acorda" sem internet: tenta recuperar antes de deslogar
+    setTimeout(async()=>{
+      let {data:d}=await sb.auth.getSession();
+      if(!(d&&d.session)){const r=await sb.auth.refreshSession().catch(()=>({data:null}));d=r&&r.data}
+      if(d&&d.session){user=d.session.user;reload()} else showLogin("Sua sessão expirou. Entre de novo.");
+    },2000);
+  });
+  document.addEventListener("visibilitychange",()=>{try{document.hidden?sb.auth.stopAutoRefresh():sb.auth.startAutoRefresh()}catch(e){}});
+  window.addEventListener("online",()=>{try{sb.auth.startAutoRefresh()}catch(e){};if(user) reload()});
+  const {data}=await sb.auth.getSession();
+  if(data&&data.session) showApp(data.session.user); else showLogin();
+})();
 </script>
+
 </body>
 </html>
