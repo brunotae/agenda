@@ -167,6 +167,29 @@ h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spa
 .wpill.k-evento{border-left-color:#FF6FB5}.wpill.k-evento .wt{color:#FF6FB5}
 .wpill.done{opacity:.5}
 .wempty{color:var(--muted);text-align:center;padding:6px 0}
+/* grade de horas (semana) */
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tgrid{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr));column-gap:4px;row-gap:4px;min-width:0}
+@media (max-width:700px){.tgrid{grid-template-columns:30px repeat(7,minmax(74px,1fr))}}
+.tgrid .wh{padding:0 0 2px}
+.tgrid .wh.is-today .wn{background:var(--btn);color:#fff}
+.tlab{font-size:10px;color:var(--muted);text-align:right;padding-top:4px}
+.tallday{display:flex;flex-direction:column;gap:3px}
+.tlabs{position:relative;height:520px}
+.tlabs span{position:absolute;right:2px;transform:translateY(-50%);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tlabs span:first-child{transform:none}
+.tcol{position:relative;height:520px;border-radius:8px;background:rgba(17,14,42,.45) repeating-linear-gradient(to bottom,rgba(168,162,207,.14) 0 1px,transparent 1px calc(100% / 13));overflow:hidden}
+.tcol.is-today{box-shadow:inset 0 0 0 1px var(--btn)}
+.tpill{position:absolute;min-height:0!important;padding:3px 6px!important;border-radius:6px!important;overflow:hidden;justify-content:flex-start;font-size:13px}
+.tpill .wt{font-size:.85em!important;line-height:1.1}
+.tpill .wx{font-size:1em!important;line-height:1.15!important;-webkit-line-clamp:unset!important;display:block!important;overflow:visible!important;flex-shrink:0}
+.tpill .wt{flex-shrink:0}
+.tlabs span:last-child{transform:translateY(-100%)}
+.tad{min-height:0!important;padding:3px 6px!important;font-size:12px}
+.tad .wt{display:none}
+.tad .wx{font-size:1em!important}
+.tnow{position:absolute;left:0;right:0;height:2px;background:#FF5A7A;box-shadow:0 0 6px #FF5A7A}
+@media (min-width:860px){.tpill{font-size:15px}}
 /* modo compacto (visão semana): cabeçalho pequeno, foco nos compromissos */
 body.compact .bar{padding-block:10px 0}
 body.compact .bar-top{margin-bottom:2px}
@@ -448,21 +471,63 @@ let viewMode=(()=>{try{return localStorage.getItem("agenda-view")||"list"}catch(
 let weekOff=0;
 const WD3=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
 function syncToggle(){document.querySelectorAll(".vchip").forEach(x=>x.setAttribute("aria-pressed",x.dataset.view===viewMode))}
+const WH0=8,WH1=21,WSPAN=(WH1-WH0)*60;
+function pillHTML(r,ds,cls,style){
+  return '<button class="wpill '+cls+(r.type?' k-'+r.type:'')+(isDone(r)?' done':'')+'" data-id="'+esc(r.id)+'" data-date="'+ds+'"'+(style?' style="'+style+'"':'')+'><span class="wt">'+esc(r.time?fmt(r.time).replace(' AM','a').replace(' PM','p'):'—')+'</span><span class="wx">'+esc(r.title||TYPE_LABEL[r.type]||'(sem assunto)')+'</span></button>';
+}
 function renderWeek(){
   const rows=rowsAll().filter(r=>!isCanceled(r));
   const t=iso(today0());const base=today0();base.setDate(base.getDate()+weekOff*7);
   const end=new Date(base);end.setDate(base.getDate()+6);
   const lab=base.getDate()+" "+MES[base.getMonth()]+" – "+end.getDate()+" "+MES[end.getMonth()];
-  let h='<div class="weeknav"><button class="vnav" data-wk="-1" aria-label="Semana anterior">‹</button><span class="wlabel">'+lab+'</span><button class="vnav" data-wk="1" aria-label="Próxima semana">›</button>'+(weekOff?'<button class="vnav today" data-wk="0">Hoje</button>':'')+'</div><div class="wgrid">';
-  for(let i=0;i<7;i++){
-    const d=new Date(base);d.setDate(base.getDate()+i);const ds=iso(d);
-    const items=rows.filter(r=>r.date===ds);
-    h+='<div class="wcol'+(ds===t?' is-today':'')+'"><div class="wh"><span class="wd3">'+WD3[d.getDay()]+'</span><span class="wn">'+d.getDate()+'</span></div>';
-    h+=items.length?items.map(r=>'<button class="wpill'+(r.type?' k-'+r.type:'')+(isDone(r)?' done':'')+'" data-id="'+esc(r.id)+'" data-date="'+ds+'"><span class="wt">'+esc(r.time?fmt(r.time).replace(' AM','a').replace(' PM','p'):'—')+'</span><span class="wx">'+esc(r.title||TYPE_LABEL[r.type]||'(sem assunto)')+'</span></button>').join(''):'<div class="wempty">—</div>';
-    h+='</div>';
+  const days=[];for(let i=0;i<7;i++){const d=new Date(base);d.setDate(base.getDate()+i);days.push(d)}
+  const anyAllDay=rows.some(r=>!r.time&&days.some(d=>iso(d)===r.date));
+  let h='<div class="weeknav"><button class="vnav" data-wk="-1" aria-label="Semana anterior">‹</button><span class="wlabel">'+lab+'</span>'+(weekOff?'<button class="vnav today" data-wk="0">Hoje</button>':'')+'<button class="vnav" data-wk="1" aria-label="Próxima semana">›</button></div>';
+  h+='<div class="tscroll"><div class="tgrid">';
+  // cabeçalho
+  h+='<div class="tcorner"></div>';
+  days.forEach(d=>{const ds=iso(d);h+='<div class="wh'+(ds===t?' is-today':'')+'"><span class="wd3">'+WD3[d.getDay()]+'</span><span class="wn">'+d.getDate()+'</span></div>'});
+  // linha "sem hora"
+  if(anyAllDay){
+    h+='<div class="tlab tlab-ad">s/ hora</div>';
+    days.forEach(d=>{const ds=iso(d);h+='<div class="tallday">'+rows.filter(r=>r.date===ds&&!r.time).map(r=>pillHTML(r,ds,'tad','')).join('')+'</div>'});
   }
-  $("week").innerHTML=h+'</div>';
+  // grade de horas
+  h+='<div class="tlabs">';for(let k=WH0;k<=WH1;k++){h+='<span style="top:'+((k-WH0)*60/WSPAN*100)+'%">'+(k%12===0?12:k%12)+(k<12?'a':'p')+'</span>'}h+='</div>';
+  const now=new Date();const nowM=now.getHours()*60+now.getMinutes();
+  days.forEach(d=>{
+    const ds=iso(d);
+    const items=rows.filter(r=>r.date===ds&&r.time).map(r=>{const [hh,mm]=r.time.split(":").map(Number);return {r,s:hh*60+mm}}).sort((a,b)=>a.s-b.s);
+    // colisões: agrupa e divide a largura
+    let cl=[],cur=[],curEnd=-1;
+    items.forEach(it=>{if(cur.length&&it.s>=curEnd){cl.push(cur);cur=[];curEnd=-1}cur.push(it);curEnd=Math.max(curEnd,it.s+60)});if(cur.length) cl.push(cur);
+    cl.forEach(g=>{const lanes=[];g.forEach(it=>{let i=lanes.findIndex(e=>e<=it.s);if(i<0){i=lanes.length;lanes.push(0)}lanes[i]=it.s+60;it.lane=i});g.forEach(it=>it.n=lanes.length)});
+    h+='<div class="tcol'+(ds===t?' is-today':'')+'">';
+    items.forEach(it=>{
+      const top=Math.max(0,(it.s-WH0*60)/WSPAN*100);
+      if(top>=100) return;
+      const st='top:'+top+'%;height:calc('+(60/WSPAN*100)+'% - 2px);left:calc('+(it.lane/it.n*100)+'% + 2px);width:calc('+(100/it.n)+'% - 4px)';
+      h+=pillHTML(it.r,ds,'tpill',st);
+    });
+    if(ds===t&&nowM>=WH0*60&&nowM<=WH1*60) h+='<div class="tnow" style="top:'+((nowM-WH0*60)/WSPAN*100)+'%"></div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  $("week").innerHTML=h;
+  fitWeek();
 }
+function fitWeek(){
+  const sc=document.querySelector("#week .tscroll");if(!sc||$("week").hidden) return;
+  const cols=document.querySelectorAll("#week .tcol, #week .tlabs");if(!cols.length) return;
+  const topY=cols[0].getBoundingClientRect().top;
+  const H=Math.max(420,Math.round(window.innerHeight-topY-14));
+  cols.forEach(c=>c.style.height=H+"px");
+  document.querySelectorAll("#week .tpill").forEach(el=>{
+    el.style.fontSize="";let f=parseFloat(getComputedStyle(el).fontSize);
+    while((el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1)&&f>8){f-=0.5;el.style.fontSize=f+"px"}
+  });
+}
+window.addEventListener("resize",()=>{if(viewMode==="week"&&!$("week").hidden) fitWeek()});
 $("viewToggle").addEventListener("click",e=>{const b=e.target.closest(".vchip");if(!b) return;viewMode=b.dataset.view;try{localStorage.setItem("agenda-view",viewMode)}catch(err){}syncToggle();openId=null;renderList()});
 $("week").addEventListener("click",e=>{
   const n=e.target.closest(".vnav");if(n){const k=+n.dataset.wk;weekOff=k===0?0:weekOff+k;renderWeek();return}
