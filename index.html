@@ -455,7 +455,11 @@ try{sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,aut
 const fromRow=r=>({date:r.date,time:r.time||"",title:r.title||"",type:r.type||"",place:r.place||"",status:r.status||"ativo",created:r.created_at,canceledAt:r.canceled_at});
 async function reload(){
   if(!user) return;
-  const {data,error}=await sb.from("agenda").select("*").order("date");
+  let {data,error}=await sb.from("agenda").select("*").order("date");
+  if(error&&/jwt|token|401|auth/i.test((error.message||"")+(error.code||""))){
+    await sb.auth.refreshSession().catch(()=>{});
+    ({data,error}=await sb.from("agenda").select("*").order("date"));
+  }
   if(error){say($("listStatus"),"Não consegui carregar. Verifique a internet e recarregue.",true);return}
   rowsCache={};(data||[]).forEach(r=>rowsCache[r.id]=fromRow(r));
   docs=Object.entries(rowsCache).map(([id,v])=>({id,data:()=>v}));
@@ -468,13 +472,15 @@ col={
 };
 
 /* ---------- login ---------- */
-function showLogin(msg){user=null;$("app").hidden=true;$("lock").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg)}
+let manualOut=false;
+function showLogin(msg){try{const em=localStorage.getItem("agenda-tae-email");if(em&&!$("lgEmail").value) $("lgEmail").value=em}catch(e){}user=null;$("app").hidden=true;$("lock").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg)}
 function showApp(u){user=u;$("login").hidden=true;if(fidOn()&&!unlocked){showLock();return}$("lock").hidden=true;$("app").hidden=false;fidLabel();$("who").textContent=u.email||"";show("list");reload()}
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const email=$("lgEmail").value.trim(),password=$("lgPass").value;
   $("lgBtn").disabled=true;
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  try{localStorage.setItem("agenda-tae-email",email)}catch(e){}
+  const {data,error}=await sb.auth.signInWithPassword({email,password});manualOut=false;
   $("lgBtn").disabled=false;
   if(error){say($("lgStatus"),/invalid/i.test(error.message)?"E-mail ou senha incorretos. Primeira vez? Toque em Criar conta.":"Não consegui entrar: "+error.message,true);return}
   unlocked=true;showApp(data.user);
@@ -486,7 +492,7 @@ $("lgCreate").addEventListener("click",async()=>{
   if(error){say($("lgStatus"),"Não consegui criar a conta: "+error.message,true);return}
   if(data.session) showApp(data.user); else say($("lgStatus"),"Conta criada. Confira seu e-mail para confirmar e depois toque em Entrar.");
 });
-$("logoutBtn").addEventListener("click",async()=>{await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Você saiu. Entre de novo quando quiser.")});
+$("logoutBtn").addEventListener("click",async()=>{manualOut=true;await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Você saiu. Entre de novo quando quiser.")});
 
 /* ---------- trazer compromissos salvos neste aparelho ---------- */
 function localPending(){
@@ -538,7 +544,7 @@ async function tryUnlock(auto){
   }catch(e){if(!auto) say($("lockStatus"),"Não reconheci. Toque para tentar de novo ou entre com senha.",true)}
 }
 $("lockBtn").addEventListener("click",()=>tryUnlock(false));
-$("lockPass").addEventListener("click",async()=>{await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Entre com e-mail e senha.")});
+$("lockPass").addEventListener("click",async()=>{manualOut=true;await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Entre com e-mail e senha.")});
 $("fidBtn").addEventListener("click",async()=>{
   if(fidOn()){try{localStorage.removeItem(FID_KEY)}catch(e){}fidLabel();say($("bkStatus"),"Face ID desativado neste aparelho.");return}
   if(!window.PublicKeyCredential){say($("bkStatus"),"Este aparelho não suporta Face ID no navegador.",true);return}
@@ -570,7 +576,17 @@ setInterval(()=>{if(!document.hidden) reload()},60000);
 (async()=>{
   if(!sb){showLogin("Sem conexão com o servidor. Verifique a internet e recarregue.");return}
   try{if(navigator.storage&&navigator.storage.persist) navigator.storage.persist()}catch(e){}
-  sb.auth.onAuthStateChange((ev,ses)=>{if(ev==="SIGNED_OUT"&&!$("app").hidden) showLogin("Sua sessão expirou. Entre de novo.")});
+  sb.auth.onAuthStateChange((ev,ses)=>{
+    if(ev!=="SIGNED_OUT"||manualOut||$("app").hidden) return;
+    // iPhone às vezes "acorda" sem internet: tenta recuperar antes de deslogar
+    setTimeout(async()=>{
+      let {data:d}=await sb.auth.getSession();
+      if(!(d&&d.session)){const r=await sb.auth.refreshSession().catch(()=>({data:null}));d=r&&r.data}
+      if(d&&d.session){user=d.session.user;reload()} else showLogin("Sua sessão expirou. Entre de novo.");
+    },2000);
+  });
+  document.addEventListener("visibilitychange",()=>{try{document.hidden?sb.auth.stopAutoRefresh():sb.auth.startAutoRefresh()}catch(e){}});
+  window.addEventListener("online",()=>{try{sb.auth.startAutoRefresh()}catch(e){};if(user) reload()});
   const {data}=await sb.auth.getSession();
   if(data&&data.session) showApp(data.session.user); else showLogin();
 })();
