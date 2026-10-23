@@ -167,6 +167,26 @@ h2{margin:0;font-family:var(--display);font-weight:700;font-size:20px;letter-spa
 .wpill.k-evento{border-left-color:#FF6FB5}.wpill.k-evento .wt{color:#FF6FB5}
 .wpill.done{opacity:.5}
 .wempty{color:var(--muted);text-align:center;padding:6px 0}
+/* modo compacto (visão semana): cabeçalho pequeno, foco nos compromissos */
+body.compact .bar{padding-block:10px 0}
+body.compact .bar-top{margin-bottom:2px}
+body.compact .bar h1{font-size:26px;letter-spacing:0}
+body.compact .bar .outline{display:none}
+body.compact .bar .sub{margin-top:2px;font-size:12px}
+body.compact #view-list>h2{display:none}
+body.compact .wrap{gap:10px;padding-block:10px 32px}
+body.compact .tab{min-height:40px;font-size:13px}
+body.compact .vchip{min-height:34px;padding:4px 14px;font-size:13px}
+body.compact .vnav{height:34px;min-width:38px;font-size:16px}
+body.compact .wlabel{font-size:14px}
+body.compact .wn{font-size:15px;width:30px;height:30px}
+@media (min-width:860px){
+  body.compact .wrap{max-width:1320px}body.compact .bar-in{max-width:1288px}
+  body.compact .wgrid{gap:8px;grid-template-columns:repeat(7,minmax(0,1fr))}
+  body.compact .wpill{padding:10px 12px;border-radius:10px;border-left-width:4px;min-height:64px}
+  body.compact .wpill .wt{font-size:14px}
+  body.compact .wpill .wx{font-size:16px;line-height:1.3;-webkit-line-clamp:4}
+}
 </style>
 </head>
 <body>
@@ -306,7 +326,7 @@ resetNew();
 /* ---------- tabs ---------- */
 const VIEWS={new:"view-new",list:"view-list",hist:"view-hist"};
 function show(which){
-  current=which;openId=null;armedId=null;
+  current=which;openId=null;armedId=null;document.body.classList.remove("compact");
   for(const [k,id] of Object.entries(VIEWS)){$(id).hidden=k!==which;$("tab-"+k).setAttribute("aria-selected",k===which)}
   if(which==="new"){$("newStatus").textContent=""}
   renderAll();
@@ -421,7 +441,7 @@ function renderList(){
   $("nextUp").textContent=nx?"Próximo: "+WD[fromIso(nx.date).getDay()]+" "+short(nx.date)+(nx.time?" · "+fmt(nx.time):"")+" · "+(nx.title||(nx.type?TYPE_LABEL[nx.type]:"compromisso")):"Nenhum compromisso pela frente.";
   $("days").innerHTML=rows.length?daysHTML(rows,"list")
     :'<div class="empty">Nenhum compromisso pela frente. Toque em <b>+ Novo compromisso</b> para criar o primeiro.</div>';
-  const wk=viewMode==="week";$("week").hidden=!wk;$("listwrap").hidden=wk;if(wk) renderWeek();
+  const wk=viewMode==="week";$("week").hidden=!wk;$("listwrap").hidden=wk;document.body.classList.toggle("compact",wk);if(wk) renderWeek();
 }
 /* ---------- visão semana ---------- */
 let viewMode=(()=>{try{return localStorage.getItem("agenda-view")||"list"}catch(e){return "list"}})();
