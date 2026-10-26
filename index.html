@@ -222,6 +222,7 @@ body.compact .wn{font-size:15px;width:30px;height:30px}
   <section class="card">
     <h2>Entrar</h2>
     <p class="count">Entre com seu e-mail e senha para ver a mesma agenda no celular e no computador.</p>
+    <button class="btn" id="lgFace" type="button" hidden>Entrar com Face ID</button>
     <form id="loginForm" class="form" autocomplete="on">
       <label class="field" for="lgEmail">E-mail<input type="email" id="lgEmail" name="username" autocomplete="username" autocapitalize="off" required></label>
       <label class="field" for="lgPass">Senha<input type="password" id="lgPass" name="password" autocomplete="current-password" minlength="6" required></label>
@@ -266,6 +267,7 @@ body.compact .wn{font-size:15px;width:30px;height:30px}
     <h2>Meus compromissos</h2>
     <div class="vtoggle" id="viewToggle" role="group" aria-label="Modo de visualização"><button class="vchip" data-view="list" aria-pressed="true">Lista</button><button class="vchip" data-view="week" aria-pressed="false">Semana</button></div>
     <div class="view" id="week" hidden></div>
+    <div class="importbar" id="faceBar" hidden><span>Entrar com Face ID nas próximas vezes, sem digitar senha?</span><div class="actions"><button class="btn" id="faceYes">Ativar Face ID</button><button class="btn ghost" id="faceNo">Agora não</button></div></div>
     <div class="importbar" id="importBar" hidden><span id="importTxt"></span><div class="actions"><button class="btn" id="impYes">Enviar para a nuvem</button><button class="btn ghost" id="impNo">Agora não</button></div></div>
     <div class="status" id="listStatus" role="status"></div>
     <div class="listgrid" id="listwrap">
@@ -611,8 +613,9 @@ col={
 };
 
 /* ---------- login ---------- */
-let manualOut=false;
-function showLogin(msg){try{const em=localStorage.getItem("agenda-tae-email");if(em&&!$("lgEmail").value) $("lgEmail").value=em}catch(e){}user=null;$("app").hidden=true;$("lock").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg)}
+let manualOut=false,lastPass="";
+function showLogin(msg){try{const em=localStorage.getItem("agenda-tae-email");if(em&&!$("lgEmail").value) $("lgEmail").value=em}catch(e){}user=null;$("app").hidden=true;$("lock").hidden=true;$("login").hidden=false;if(msg) say($("lgStatus"),msg);
+  const hasP=!!prfGet();$("lgFace").hidden=!hasP;if(hasP&&!manualOut) setTimeout(()=>fidPrfLogin(true),350)}
 function showApp(u){user=u;$("login").hidden=true;if(fidOn()&&!unlocked){showLock();return}$("lock").hidden=true;$("app").hidden=false;fidLabel();$("who").textContent=u.email||"";show("list");reload()}
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -622,7 +625,7 @@ $("loginForm").addEventListener("submit",async e=>{
   const {data,error}=await sb.auth.signInWithPassword({email,password});manualOut=false;
   $("lgBtn").disabled=false;
   if(error){say($("lgStatus"),/invalid/i.test(error.message)?"E-mail ou senha incorretos. Primeira vez? Toque em Criar conta.":"Não consegui entrar: "+error.message,true);return}
-  unlocked=true;showApp(data.user);
+  lastPass=password;unlocked=true;showApp(data.user);offerFace();
 });
 $("lgCreate").addEventListener("click",async()=>{
   const email=$("lgEmail").value.trim(),password=$("lgPass").value;
@@ -682,10 +685,56 @@ async function tryUnlock(auto){
     unlocked=true;$("lock").hidden=true;if(user) showApp(user);
   }catch(e){if(!auto) say($("lockStatus"),"Não reconheci. Toque para tentar de novo ou entre com senha.",true)}
 }
+/* Face ID que faz o login (senha guardada cifrada, só abre com o rosto) */
+const FIDP_KEY="agenda-tae-faceid-login";
+function prfGet(){try{return JSON.parse(localStorage.getItem(FIDP_KEY)||"null")}catch(e){return null}}
+async function prfKey(out){return crypto.subtle.importKey("raw",out,"AES-GCM",false,["encrypt","decrypt"])}
+async function fidPrfSetup(email,pass){
+  const salt=rnd(32);
+  const cred=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:"Agenda"},user:{id:rnd(16),name:email,displayName:"Agenda · Tae"},
+    pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+    authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"preferred"},
+    timeout:60000,attestation:"none",extensions:{prf:{eval:{first:salt}}}}});
+  const ext=cred.getClientExtensionResults()||{};
+  if(ext.prf&&ext.prf.enabled===false) throw Object.assign(new Error("noprf"),{name:"NoPRF"});
+  let out=ext.prf&&ext.prf.results&&ext.prf.results.first;
+  if(!out){
+    const a=await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:"public-key",id:cred.rawId}],userVerification:"required",timeout:60000,extensions:{prf:{eval:{first:salt}}}}});
+    const e2=a.getClientExtensionResults()||{};out=e2.prf&&e2.prf.results&&e2.prf.results.first;
+  }
+  if(!out) throw Object.assign(new Error("noprf"),{name:"NoPRF"});
+  const iv=rnd(12);const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},await prfKey(out),new TextEncoder().encode(pass));
+  const id=b64(cred.rawId);
+  localStorage.setItem(FIDP_KEY,JSON.stringify({id,salt:b64(salt),iv:b64(iv),ct:b64(ct),email}));
+  localStorage.setItem(FID_KEY,id);
+}
+async function fidPrfLogin(auto){
+  const d=prfGet();if(!d) return;
+  try{
+    const a=await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:"public-key",id:unb64(d.id),transports:["internal"]}],userVerification:"required",timeout:60000,extensions:{prf:{eval:{first:unb64(d.salt)}}}}});
+    const e=a.getClientExtensionResults()||{};const out=e.prf&&e.prf.results&&e.prf.results.first;
+    if(!out) throw new Error("noprf");
+    const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(d.iv)},await prfKey(out),unb64(d.ct));
+    const password=new TextDecoder().decode(pt);
+    const {data,error}=await sb.auth.signInWithPassword({email:d.email,password});
+    if(error){if(/invalid/i.test(error.message)){localStorage.removeItem(FIDP_KEY);$("lgFace").hidden=true;say($("lgStatus"),"Sua senha mudou. Entre com a senha nova e ative o Face ID de novo.",true)}else say($("lgStatus"),"Não consegui entrar: "+error.message,true);return}
+    manualOut=false;lastPass=password;unlocked=true;showApp(data.user);
+  }catch(err){if(!auto) say($("lgStatus"),"Não reconheci o Face ID. Tente de novo ou use a senha.",true)}
+}
+function offerFace(){if(!prfGet()&&window.PublicKeyCredential&&lastPass){let no=false;try{no=localStorage.getItem("agenda-tae-faceid-no")==="1"}catch(e){}$("faceBar").hidden=no}}
+async function enableFaceLogin(statusEl){
+  if(!lastPass){say(statusEl,"Para ativar, saia e entre uma vez com a senha. Depois disso o Face ID faz o login sozinho.",true);return false}
+  try{await fidPrfSetup((user&&user.email)||$("lgEmail").value.trim(),lastPass);unlocked=true;fidLabel();$("faceBar").hidden=true;say(statusEl,"Pronto! Da próxima vez é só olhar para o celular.");return true}
+  catch(e){say(statusEl,e&&e.name==="NoPRF"?"Este iPhone não permite o login por Face ID (precisa do iOS 18 ou mais novo e do iCloud Keychain ligado).":e&&e.name==="NotAllowedError"?"Cancelado. Toque de novo para tentar.":"Não consegui ativar ("+((e&&e.name)||"erro")+").",true);return false}
+}
+$("lgFace").addEventListener("click",()=>fidPrfLogin(false));
+$("faceYes").addEventListener("click",()=>enableFaceLogin($("listStatus")));
+$("faceNo").addEventListener("click",()=>{$("faceBar").hidden=true;try{localStorage.setItem("agenda-tae-faceid-no","1")}catch(e){}});
 $("lockBtn").addEventListener("click",()=>tryUnlock(false));
 $("lockPass").addEventListener("click",async()=>{manualOut=true;await sb.auth.signOut({scope:"local"});rowsCache={};docs=[];showLogin("Entre com e-mail e senha.")});
 $("fidBtn").addEventListener("click",async()=>{
-  if(fidOn()){try{localStorage.removeItem(FID_KEY)}catch(e){}fidLabel();say($("bkStatus"),"Face ID desativado neste aparelho.");return}
+  if(fidOn()){try{localStorage.removeItem(FID_KEY);localStorage.removeItem(FIDP_KEY)}catch(e){}fidLabel();say($("bkStatus"),"Face ID desativado neste aparelho.");return}
+  if(lastPass){await enableFaceLogin($("bkStatus"));return}
   if(!window.PublicKeyCredential){say($("bkStatus"),"Este aparelho não suporta Face ID no navegador.",true);return}
   try{
     const cred=await navigator.credentials.create({publicKey:{
